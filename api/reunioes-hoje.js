@@ -33,7 +33,14 @@ const DEFAULT_B2B = [
   "87159365", // João Lucas Backmann
   "86859895", // Mateus Menezes Mariano
 ];
-const DEFAULT_B2C = []; // aguardando a lista de closers B2C
+// B2C resolvido em 2026-07-13 a partir da lista enviada pelo time.
+const DEFAULT_B2C = [
+  "79760676", // Amanda de Oliveira
+  "79760746", // Mayda Quadros
+  "88628309", // João Paulo da Silveira Araújo
+  "89632494", // Willker Santos Belous
+  "88628313", // Gabrielly Milani da Silva
+];
 
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
 const BRT_OFFSET_MIN = -180;
