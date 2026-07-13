@@ -72,6 +72,15 @@ function iniciaisDe(nome) {
   return (a + b).toUpperCase();
 }
 
+// Datas do HubSpot chegam ora como epoch ms ("1720900800000"), ora como ISO
+// ("2026-07-13T18:00:00Z"). Aceita os dois; devolve Date válido ou null.
+function parseHsDate(v) {
+  if (v == null || v === "") return null;
+  const s = String(v).trim();
+  const d = /^\d+$/.test(s) ? new Date(Number(s)) : new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
 // Mapa ownerId -> nome, lendo em lote os owners que interessam.
 async function nomesDosOwners(token, ids) {
   const map = new Map();
@@ -242,15 +251,17 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
     const p = m.properties ?? {};
     const owner = String(p.hubspot_owner_id ?? "");
     if (!porOwner.has(owner)) porOwner.set(owner, []);
-    const ini = Number(p.hs_meeting_start_time);
-    const fim = Number(p.hs_meeting_end_time) || ini + 45 * 60000;
+    const ini = parseHsDate(p.hs_meeting_start_time);
+    if (!ini) continue; // sem início válido não dá pra posicionar na agenda
+    const fim =
+      parseHsDate(p.hs_meeting_end_time) || new Date(ini.getTime() + 45 * 60000);
     const ct = contatos.get(String(m.id)) || { contato: "—", empresa: "—" };
     porOwner.get(owner).push({
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
       contato: ct.contato,
       empresa: segmento === "B2C" ? "—" : ct.empresa,
-      inicio: new Date(ini).toISOString(),
-      fim: new Date(fim).toISOString(),
+      inicio: ini.toISOString(),
+      fim: fim.toISOString(),
       outcome: normalizaOutcome(p.hs_meeting_outcome),
     });
   }
