@@ -427,7 +427,27 @@ function resumoCloser(c, agora){
    ============================================================ */
 const fmtHora = d => d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 const fmtDia = d => d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
+const fmtDow = d => d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','');
+const capitaliza = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
+const ehMesmoDia = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 const el = (html)=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstChild;};
+
+// agrupa as reuniões do closer por dia (usado no resumo de Semana/Mês)
+function agrupaPorDia(reunioes, agora){
+  const byDay = new Map();
+  reunioes.forEach(m=>{
+    const key = m.inicio.toDateString();
+    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0});
+    const g = byDay.get(key);
+    g.total++;
+    const s = statusReuniao(m, agora);
+    if(s==="REALIZADA") g.realizadas++;
+    else if(s==="AGORA") g.agora++;
+    else if(s==="FUTURA") g.futuras++;
+    else if(s==="PERDIDA") g.perdidas++;
+  });
+  return [...byDay.values()].sort((a,b)=>a.dia-b.dia);
+}
 
 function faltamMin(d, agora){
   const m = Math.round((d - agora)/60000);
@@ -502,32 +522,56 @@ function render(dados){
   resumos.forEach(({c,r})=>{
     const emAndamento = !!r.emAndamento;
 
-    // agenda completa do dia: todas as reuniões, ordenadas por horário
-    const reunioesOrdenadas = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
-    let jaMarcouProxima=false;
-    const linhas = reunioesOrdenadas.map(m=>{
-      const s = statusReuniao(m, agora);
-      let cor, tag, cls="";
-      if(s==="AGORA"){ cor="var(--now)"; tag="Agora"; cls="live"; }
-      else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
-      else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
-      else { // FUTURA
-        cor="var(--next)";
-        // "em X min" só faz sentido no dia de hoje; em períodos futuros mostra "Agendada"
-        if(state.range==='hoje' && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
-        else { tag="Agendada"; }
-      }
-      // nos períodos multi-dia, mostra a data da reunião junto do horário
-      const diaHTML = state.range!=='hoje' ? `<span class="dia">${fmtDia(m.inicio)}</span>` : '';
-      const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
-      return `<a class="appt ${cls}" style="--c:${cor}"${href}>
-        <div class="time">${diaHTML}<span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
-        <div class="info"><div class="t">${m.titulo}</div><div class="c">${metaContato(m)}</div></div>
-        <div class="tag">${tag}</div>
-      </a>`;
-    }).join('');
-    const nReun = reunioesOrdenadas.length;
-    const dens = nReun >= 7 ? ' dense' : (nReun >= 5 ? ' compact' : '');
+    // Semana/Mês: resumo por dia (contagem). Hoje/Amanhã: lista detalhada.
+    const resumoPorDia = (state.range==="semana" || state.range==="mes");
+    let linhas, nLinhas;
+    if(resumoPorDia){
+      const dias = agrupaPorDia(c.reunioes, agora);
+      nLinhas = dias.length;
+      linhas = dias.map(g=>{
+        const hoje = ehMesmoDia(g.dia, agora);
+        const cor = hoje ? "var(--now)" : "var(--next)";
+        const titulo = `${capitaliza(fmtDow(g.dia))} · ${fmtDia(g.dia)}`;
+        const partes=[];
+        if(g.realizadas) partes.push(`${g.realizadas} realiz.`);
+        if(g.agora) partes.push(`${g.agora} agora`);
+        if(g.futuras) partes.push(`${g.futuras} agend.`);
+        if(g.perdidas) partes.push(`${g.perdidas} no-show`);
+        const sub = partes.join(" · ") || "—";
+        return `<div class="appt" style="--c:${cor}">
+          <div class="time"><span class="ini">${g.total}</span><span class="fim">reun.</span></div>
+          <div class="info"><div class="t">${titulo}</div><div class="c">${sub}</div></div>
+          <div class="tag">${hoje?"Hoje":""}</div>
+        </div>`;
+      }).join('');
+    } else {
+      // lista detalhada (Hoje / Amanhã), ordenada por horário
+      const reunioesOrdenadas = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
+      nLinhas = reunioesOrdenadas.length;
+      let jaMarcouProxima=false;
+      linhas = reunioesOrdenadas.map(m=>{
+        const s = statusReuniao(m, agora);
+        let cor, tag, cls="";
+        if(s==="AGORA"){ cor="var(--now)"; tag="Agora"; cls="live"; }
+        else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
+        else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
+        else { // FUTURA
+          cor="var(--next)";
+          // "em X min" só faz sentido hoje; amanhã mostra "Agendada"
+          if(state.range==='hoje' && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
+          else { tag="Agendada"; }
+        }
+        // amanhã mostra a data junto do horário
+        const diaHTML = state.range!=='hoje' ? `<span class="dia">${fmtDia(m.inicio)}</span>` : '';
+        const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
+        return `<a class="appt ${cls}" style="--c:${cor}"${href}>
+          <div class="time">${diaHTML}<span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
+          <div class="info"><div class="t">${m.titulo}</div><div class="c">${metaContato(m)}</div></div>
+          <div class="tag">${tag}</div>
+        </a>`;
+      }).join('');
+    }
+    const dens = nLinhas >= 7 ? ' dense' : (nLinhas >= 5 ? ' compact' : '');
     const vazio = state.range==='hoje' ? 'Nenhuma reunião hoje' : `Nenhuma reunião ${RANGE_LABEL[state.range]}`;
     const agendaHTML = linhas
       ? `<div class="agenda${dens}">${linhas}</div>`
