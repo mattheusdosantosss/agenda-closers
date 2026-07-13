@@ -147,7 +147,10 @@ async function buscarMeetings(token, ownerIds, janela) {
       body: JSON.stringify(body),
       cache: "no-store",
     });
-    if (!res.ok) throw new Error(`HubSpot meetings search ${res.status}`);
+    if (!res.ok) {
+      const detalhe = await res.text().catch(() => "");
+      throw new Error(`meetings search ${res.status}: ${detalhe.slice(0, 400)}`);
+    }
     const data = await res.json();
     out.push(...(data.results ?? []));
     after = data.paging?.next?.after;
@@ -285,6 +288,9 @@ export default async function handler(req, res) {
     return;
   }
 
+  // ?debug=1 devolve o erro completo em HTTP 200 (facilita diagnóstico externo).
+  const debug = /[?&]debug=1\b/.test(req.url || "");
+
   try {
     const janela = janelaHojeBRT();
     const [closersB2B, closersB2C] = await Promise.all([
@@ -293,6 +299,9 @@ export default async function handler(req, res) {
     ]);
     res.status(200).json([...closersB2B, ...closersB2C]);
   } catch (e) {
-    res.status(500).json({ error: e?.message ?? "erro ao consultar o HubSpot" });
+    console.error("reunioes-hoje error:", e);
+    const payload = { error: e?.message ?? "erro ao consultar o HubSpot" };
+    if (debug) payload.stack = String(e?.stack ?? e);
+    res.status(debug ? 200 : 500).json(payload);
   }
 }
