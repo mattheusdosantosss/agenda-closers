@@ -19,7 +19,7 @@
 const BASE = "https://api.hubapi.com";
 
 // Cores de marca PSA em rodízio para os avatares dos closers.
-const CORES = ["#ff6a1a", "#2f80ed", "#ffa24d", "#1fa971"];
+const CORES = ["#ff6a1a", "#5aa9ff", "#ffa24d", "#46d17f"];
 
 // Closers por segmento (ownerId do HubSpot). Podem ser sobrescritos por
 // HUBSPOT_CLOSERS_B2B / HUBSPOT_CLOSERS_B2C sem mexer no código.
