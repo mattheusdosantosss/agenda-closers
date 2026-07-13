@@ -19,7 +19,21 @@
 const BASE = "https://api.hubapi.com";
 
 // Cores de marca PSA em rodízio para os avatares dos closers.
-const CORES = ["#ff6a1a", "#5aa9ff", "#ffa24d", "#46d17f"];
+const CORES = ["#ff6a1a", "#2f80ed", "#ffa24d", "#1fa971"];
+
+// Closers por segmento (ownerId do HubSpot). Podem ser sobrescritos por
+// HUBSPOT_CLOSERS_B2B / HUBSPOT_CLOSERS_B2C sem mexer no código.
+// B2B resolvido em 2026-07-13 a partir da lista enviada pelo time.
+const DEFAULT_B2B = [
+  "80454586", // Rafael Azevedo Teixeira
+  "80651489", // Catarina Varoni Borges
+  "92704130", // Talita Santos Cruz
+  "80169395", // Lucas Rosa de Oliveira
+  "80454588", // João Gabriel Marins Pereira
+  "87159365", // João Lucas Backmann
+  "86859895", // Mateus Menezes Mariano
+];
+const DEFAULT_B2C = []; // aguardando a lista de closers B2C
 
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
 const BRT_OFFSET_MIN = -180;
@@ -258,8 +272,12 @@ export default async function handler(req, res) {
     return;
   }
 
-  const b2b = parseIds(process.env.HUBSPOT_CLOSERS_B2B);
-  const b2c = parseIds(process.env.HUBSPOT_CLOSERS_B2C);
+  const b2b = process.env.HUBSPOT_CLOSERS_B2B
+    ? parseIds(process.env.HUBSPOT_CLOSERS_B2B)
+    : DEFAULT_B2B;
+  const b2c = process.env.HUBSPOT_CLOSERS_B2C
+    ? parseIds(process.env.HUBSPOT_CLOSERS_B2C)
+    : DEFAULT_B2C;
   if (!b2b.length && !b2c.length) {
     res.status(501).json({
       error: "Defina HUBSPOT_CLOSERS_B2B e/ou HUBSPOT_CLOSERS_B2C (IDs dos owners).",
