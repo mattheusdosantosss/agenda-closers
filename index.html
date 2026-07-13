@@ -258,8 +258,8 @@
 async function fetchMeetings(){
   try{
     const r = await fetch('/api/reunioes-hoje', {cache:'no-store'});
-    if(r.ok){
-      const raw = await r.json();
+    const raw = await r.json().catch(()=>null);
+    if(r.ok && raw){
       const arr = Array.isArray(raw) ? raw : (raw.closers || []);
       if(arr.length){
         setFonte('HubSpot · ao vivo');
@@ -268,9 +268,14 @@ async function fetchMeetings(){
           reunioes:(c.reunioes||[]).map(m => ({...m, inicio:new Date(m.inicio), fim:new Date(m.fim)}))
         }));
       }
+      setFonte('API sem closers configurados · dados de exemplo');
+    } else {
+      const msg = (raw && raw.error) ? raw.error : ('HTTP '+r.status);
+      setFonte('erro na API ('+msg+') · dados de exemplo');
     }
-  }catch(e){ /* backend ainda não disponível — usa demo */ }
-  setFonte('dados de exemplo');
+  }catch(e){
+    setFonte('API indisponível · dados de exemplo');
+  }
   return gerarDadosDemo();
 }
 
