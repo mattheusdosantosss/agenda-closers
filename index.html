@@ -92,7 +92,8 @@
   }
   .clock{text-align:right}
 
-  /* abas de segmento (B2B / B2C) */
+  /* abas de segmento (B2B / B2C) e de período (Hoje / Amanhã / ...) */
+  .controls{display:flex;align-items:center;gap:12px}
   .tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:5px}
   .tab{
     font-family:var(--num);font-weight:700;font-size:22px;letter-spacing:.10em;text-transform:uppercase;
@@ -100,6 +101,9 @@
   }
   .tab:hover{color:var(--ink)}
   .tab.active{background:var(--orange);color:#0b0b0e}
+  /* período: fonte um pouco menor e destaque azul (diferencia do segmento) */
+  .tabs.periodo .tab{font-size:17px;padding:7px 16px;letter-spacing:.06em}
+  .tabs.periodo .tab.active{background:var(--next);color:#0b0b0e}
   .clock .time{
     font-family:var(--num);font-weight:700;font-size:46px;line-height:.9;
     font-variant-numeric:tabular-nums;letter-spacing:.02em;
@@ -168,6 +172,7 @@
   a.appt[href]{cursor:pointer}
   a.appt[href]:hover{background:rgba(255,255,255,.06);border-color:var(--c)}
   .appt .time{display:flex;flex-direction:column;line-height:1;flex:0 0 auto;font-variant-numeric:tabular-nums;text-align:center;min-width:58px}
+  .appt .time .dia{color:var(--muted);font-size:12px;font-weight:600;margin-bottom:5px;white-space:nowrap}
   .appt .time .ini{font-family:var(--num);font-weight:700;font-size:30px;color:var(--c)}
   .appt .time .fim{color:var(--dim);font-size:13px;margin-top:4px}
   .appt .info{min-width:0;flex:1;overflow:hidden}
@@ -184,6 +189,7 @@
   .agenda.compact{gap:6px}
   .agenda.compact .appt{gap:12px;padding:8px 14px}
   .agenda.compact .appt .time{min-width:48px}
+  .agenda.compact .appt .time .dia{font-size:11px;margin-bottom:3px}
   .agenda.compact .appt .time .ini{font-size:25px}
   .agenda.compact .appt .time .fim{display:none}
   .agenda.compact .appt .info .t{font-size:16px}
@@ -194,6 +200,7 @@
   .agenda.dense{gap:5px}
   .agenda.dense .appt{gap:11px;padding:7px 13px}
   .agenda.dense .appt .time{min-width:44px}
+  .agenda.dense .appt .time .dia{font-size:10px;margin-bottom:2px}
   .agenda.dense .appt .time .ini{font-size:22px}
   .agenda.dense .appt .time .fim{display:none}
   .agenda.dense .appt .info{display:flex;flex-direction:row;align-items:baseline;gap:9px;min-width:0}
@@ -221,10 +228,18 @@
       <small id="brandSub">Closers · acompanhamento ao vivo</small>
     </div>
   </div>
-  <nav class="tabs">
-    <button class="tab" data-seg="B2B">B2B</button>
-    <button class="tab" data-seg="B2C">B2C</button>
-  </nav>
+  <div class="controls">
+    <nav class="tabs" id="segTabs">
+      <button class="tab" data-seg="B2B">B2B</button>
+      <button class="tab" data-seg="B2C">B2C</button>
+    </nav>
+    <nav class="tabs periodo" id="rangeTabs">
+      <button class="tab" data-range="hoje">Hoje</button>
+      <button class="tab" data-range="amanha">Amanhã</button>
+      <button class="tab" data-range="semana">Semana</button>
+      <button class="tab" data-range="mes">Mês</button>
+    </nav>
+  </div>
   <div class="clock">
     <div class="time" id="clock">--:--:--</div>
     <div class="date" id="date">—</div>
@@ -258,7 +273,7 @@
 
 async function fetchMeetings(){
   try{
-    const r = await fetch('/api/reunioes-hoje', {cache:'no-store'});
+    const r = await fetch('/api/reunioes-hoje?range='+encodeURIComponent(state.range), {cache:'no-store'});
     const raw = await r.json().catch(()=>null);
     if(r.ok && raw){
       const arr = Array.isArray(raw) ? raw : (raw.closers || []);
@@ -411,6 +426,7 @@ function resumoCloser(c, agora){
    3) RENDER
    ============================================================ */
 const fmtHora = d => d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const fmtDia = d => d.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
 const el = (html)=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstChild;};
 
 function faltamMin(d, agora){
@@ -421,9 +437,16 @@ function faltamMin(d, agora){
   return `em ${hh}h${mm?(' '+mm+'min'):''}`;
 }
 
-/* estado: segmento ativo (via URL ?seg=b2c ou pela aba) */
-const state = { seg: (new URLSearchParams(location.search).get('seg')||'B2B').toUpperCase() };
+/* estado: segmento (B2B/B2C) e período (hoje/amanha/semana/mes), via URL ou abas */
+const RANGES = ['hoje','amanha','semana','mes'];
+const RANGE_LABEL = {hoje:'hoje', amanha:'amanhã', semana:'esta semana', mes:'este mês'};
+const params = new URLSearchParams(location.search);
+const state = {
+  seg: (params.get('seg')||'B2B').toUpperCase(),
+  range: (params.get('range')||'hoje').toLowerCase(),
+};
 if(!['B2B','B2C'].includes(state.seg)) state.seg='B2B';
+if(!RANGES.includes(state.range)) state.range='hoje';
 
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
 function colsFor(n){
@@ -443,9 +466,10 @@ function render(dados){
   // filtra pelo segmento ativo (B2B / B2C)
   const doSeg = dados.filter(c => c.segmento === state.seg);
 
-  // atualiza abas e subtítulo
-  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.seg===state.seg));
-  document.getElementById('brandSub').textContent = `Closers ${state.seg} · acompanhamento ao vivo`;
+  // atualiza abas (segmento + período) e subtítulo
+  document.querySelectorAll('#segTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.seg===state.seg));
+  document.querySelectorAll('#rangeTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.range===state.range));
+  document.getElementById('brandSub').textContent = `Closers ${state.seg} · ${RANGE_LABEL[state.range]}`;
 
   // KPIs agregados do segmento
   const tot = {agendadas:0, realizadas:0, agora:0, futuras:0};
@@ -456,7 +480,7 @@ function render(dados){
   });
 
   const kpiDefs = [
-    {n:tot.agendadas, t:"Agendadas hoje", c:"var(--ink)"},
+    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--ink)"},
     {n:tot.realizadas, t:"Realizadas", c:"var(--done)"},
     {n:tot.agora, t:"Em andamento", c:"var(--now)"},
     {n:tot.futuras, t:"Futuras", c:"var(--next)"},
@@ -489,21 +513,25 @@ function render(dados){
       else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
       else { // FUTURA
         cor="var(--next)";
-        if(!emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
+        // "em X min" só faz sentido no dia de hoje; em períodos futuros mostra "Agendada"
+        if(state.range==='hoje' && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
         else { tag="Agendada"; }
       }
+      // nos períodos multi-dia, mostra a data da reunião junto do horário
+      const diaHTML = state.range!=='hoje' ? `<span class="dia">${fmtDia(m.inicio)}</span>` : '';
       const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
       return `<a class="appt ${cls}" style="--c:${cor}"${href}>
-        <div class="time"><span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
+        <div class="time">${diaHTML}<span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
         <div class="info"><div class="t">${m.titulo}</div><div class="c">${metaContato(m)}</div></div>
         <div class="tag">${tag}</div>
       </a>`;
     }).join('');
     const nReun = reunioesOrdenadas.length;
     const dens = nReun >= 7 ? ' dense' : (nReun >= 5 ? ' compact' : '');
+    const vazio = state.range==='hoje' ? 'Nenhuma reunião hoje' : `Nenhuma reunião ${RANGE_LABEL[state.range]}`;
     const agendaHTML = linhas
       ? `<div class="agenda${dens}">${linhas}</div>`
-      : `<div class="agenda empty-day">Nenhuma reunião hoje</div>`;
+      : `<div class="agenda empty-day">${vazio}</div>`;
 
     const card = el(`<div class="card ${emAndamento?'is-now':''}">
       <div class="who">
@@ -549,14 +577,25 @@ async function atualizar(){
 setInterval(()=>{ tickRelogio(); if(cache) render(cache); }, 1000);
 setInterval(atualizar, 30000);
 
-// abas: clicar alterna o segmento e grava na URL
+// abas de SEGMENTO: filtro no cliente (só re-renderiza) e grava na URL
 // (cada TV pode abrir fixa em ?seg=b2b ou ?seg=b2c e nunca precisar de clique)
-document.querySelectorAll('.tab').forEach(btn=>{
+document.querySelectorAll('#segTabs .tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     state.seg = btn.dataset.seg;
     const u = new URL(location); u.searchParams.set('seg', state.seg.toLowerCase());
     history.replaceState({}, '', u);
     if(cache) render(cache);
+  });
+});
+
+// abas de PERÍODO: muda a janela no backend, então re-busca (?range=...)
+document.querySelectorAll('#rangeTabs .tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    if(state.range===btn.dataset.range) return;
+    state.range = btn.dataset.range;
+    const u = new URL(location); u.searchParams.set('range', state.range);
+    history.replaceState({}, '', u);
+    atualizar(); // busca a nova janela e re-renderiza
   });
 });
 

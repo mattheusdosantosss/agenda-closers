@@ -63,18 +63,39 @@ function parseIds(raw) {
     .filter(Boolean);
 }
 
-// Início e fim (ms epoch) do dia de HOJE no fuso de Brasília.
-function janelaHojeBRT() {
-  const agora = Date.now();
-  // "parede" de Brasília = UTC + offset
-  const brt = new Date(agora + BRT_OFFSET_MIN * 60000);
+const DIA_MS = 24 * 60 * 60 * 1000;
+const RANGES = ["hoje", "amanha", "semana", "mes"];
+
+// Janela [inicio, fim] em ms epoch para o período pedido, no fuso de Brasília.
+//   hoje   -> só hoje
+//   amanha -> só amanhã
+//   semana -> de hoje até domingo desta semana
+//   mes    -> de hoje até o último dia deste mês
+function janelaPara(range) {
+  const brt = new Date(Date.now() + BRT_OFFSET_MIN * 60000); // "parede" BRT
   const y = brt.getUTCFullYear();
   const m = brt.getUTCMonth();
   const d = brt.getUTCDate();
-  // 00:00 BRT em UTC = 00:00 - (-3h) = 03:00 UTC  ->  subtrai o offset
-  const inicio = Date.UTC(y, m, d, 0, 0, 0, 0) - BRT_OFFSET_MIN * 60000;
-  const fim = inicio + 24 * 60 * 60 * 1000 - 1;
-  return { inicio, fim };
+  const dow = brt.getUTCDay(); // 0=domingo .. 6=sábado
+  // 00:00 BRT (de uma data) em ms UTC: meia-noite UTC menos o offset
+  const inicioDia = (yy, mm, dd) => Date.UTC(yy, mm, dd, 0, 0, 0, 0) - BRT_OFFSET_MIN * 60000;
+
+  const hoje0 = inicioDia(y, m, d);
+  switch (range) {
+    case "amanha":
+      return { inicio: hoje0 + DIA_MS, fim: hoje0 + 2 * DIA_MS - 1 };
+    case "semana": {
+      const diasAteDomingo = (7 - dow) % 7; // hoje..domingo
+      return { inicio: hoje0, fim: hoje0 + (diasAteDomingo + 1) * DIA_MS - 1 };
+    }
+    case "mes": {
+      const fimMes = Date.UTC(y, m + 1, 1, 0, 0, 0, 0) - BRT_OFFSET_MIN * 60000; // 00:00 do dia 1 do próximo mês
+      return { inicio: hoje0, fim: fimMes - 1 };
+    }
+    case "hoje":
+    default:
+      return { inicio: hoje0, fim: hoje0 + DIA_MS - 1 };
+  }
 }
 
 function iniciaisDe(nome) {
@@ -181,59 +202,75 @@ async function buscarMeetings(token, ownerIds, janela) {
   return out;
 }
 
+// Quebra um array em lotes de tamanho n (limite dos batch/read do HubSpot = 100).
+function emLotes(arr, n) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n));
+  return out;
+}
+
 // contato + empresa da reunião: 1 contato associado por meeting (o principal).
+// Lida com períodos longos (semana/mês) quebrando os batch/read em lotes de 100
+// e rodando os lotes em paralelo.
 async function contatosDasMeetings(token, meetingIds) {
-  const info = new Map(); // meetingId -> {contato, empresa}
+  const info = new Map(); // meetingId -> {contato, empresa, contatoId}
   if (!meetingIds.length) return info;
 
-  // meeting -> contactId (batch de associações)
-  const assoc = await fetch(
-    `${BASE}/crm/v4/associations/meetings/contacts/batch/read`,
-    {
-      method: "POST",
-      headers: headers(token),
-      body: JSON.stringify({ inputs: meetingIds.map((id) => ({ id: String(id) })) }),
-      cache: "no-store",
-    }
-  );
-  if (!assoc.ok) return info;
-  const assocData = await assoc.json();
+  // meeting -> contactId (associações, em lotes)
   const meetingToContact = new Map();
   const contactIds = new Set();
-  for (const row of assocData.results ?? []) {
-    const from = String(row.from?.id ?? "");
-    const to = row.to?.[0]?.toObjectId ?? row.to?.[0]?.id;
-    if (from && to != null) {
-      meetingToContact.set(from, String(to));
-      contactIds.add(String(to));
-    }
-  }
+  await Promise.all(
+    emLotes(meetingIds, 100).map(async (lote) => {
+      const assoc = await fetch(
+        `${BASE}/crm/v4/associations/meetings/contacts/batch/read`,
+        {
+          method: "POST",
+          headers: headers(token),
+          body: JSON.stringify({ inputs: lote.map((id) => ({ id: String(id) })) }),
+          cache: "no-store",
+        }
+      );
+      if (!assoc.ok) return;
+      const assocData = await assoc.json();
+      for (const row of assocData.results ?? []) {
+        const from = String(row.from?.id ?? "");
+        const to = row.to?.[0]?.toObjectId ?? row.to?.[0]?.id;
+        if (from && to != null) {
+          meetingToContact.set(from, String(to));
+          contactIds.add(String(to));
+        }
+      }
+    })
+  );
   if (!contactIds.size) return info;
 
-  // dados dos contatos (batch)
-  const cRes = await fetch(`${BASE}/crm/v3/objects/contacts/batch/read`, {
-    method: "POST",
-    headers: headers(token),
-    body: JSON.stringify({
-      inputs: [...contactIds].map((id) => ({ id })),
-      properties: ["firstname", "lastname", "company"],
-    }),
-    cache: "no-store",
-  });
+  // dados dos contatos (batch/read, em lotes)
   const contatos = new Map();
-  if (cRes.ok) {
-    const cData = await cRes.json();
-    for (const c of cData.results ?? []) {
-      const p = c.properties ?? {};
-      const nome =
-        `${(p.firstname ?? "").trim()} ${(p.lastname ?? "").trim()}`.trim() || "Contato";
-      contatos.set(String(c.id), {
-        contato: nome,
-        empresa: (p.company ?? "").trim() || "—",
-        contatoId: String(c.id),
+  await Promise.all(
+    emLotes([...contactIds], 100).map(async (lote) => {
+      const cRes = await fetch(`${BASE}/crm/v3/objects/contacts/batch/read`, {
+        method: "POST",
+        headers: headers(token),
+        body: JSON.stringify({
+          inputs: lote.map((id) => ({ id })),
+          properties: ["firstname", "lastname", "company"],
+        }),
+        cache: "no-store",
       });
-    }
-  }
+      if (!cRes.ok) return;
+      const cData = await cRes.json();
+      for (const c of cData.results ?? []) {
+        const p = c.properties ?? {};
+        const nome =
+          `${(p.firstname ?? "").trim()} ${(p.lastname ?? "").trim()}`.trim() || "Contato";
+        contatos.set(String(c.id), {
+          contato: nome,
+          empresa: (p.company ?? "").trim() || "—",
+          contatoId: String(c.id),
+        });
+      }
+    })
+  );
 
   for (const [mId, cId] of meetingToContact) {
     info.set(mId, contatos.get(cId) || { contato: "—", empresa: "—", contatoId: cId });
@@ -324,13 +361,17 @@ export default async function handler(req, res) {
   // ?debug=1 devolve o erro completo em HTTP 200 (facilita diagnóstico externo).
   const debug = /[?&]debug=1\b/.test(req.url || "");
 
+  // ?range=hoje|amanha|semana|mes (padrão hoje)
+  const rangeMatch = /[?&]range=([a-z]+)/.exec(req.url || "");
+  const range = RANGES.includes(rangeMatch?.[1]) ? rangeMatch[1] : "hoje";
+
   try {
-    const janela = janelaHojeBRT();
+    const janela = janelaPara(range);
     const [closersB2B, closersB2C] = await Promise.all([
       montarSegmento(token, b2b, "B2B", janela),
       montarSegmento(token, b2c, "B2C", janela),
     ]);
-    res.status(200).json([...closersB2B, ...closersB2C]);
+    res.status(200).json({ range, inicio: janela.inicio, fim: janela.fim, closers: [...closersB2B, ...closersB2C] });
   } catch (e) {
     console.error("reunioes-hoje error:", e);
     const payload = { error: e?.message ?? "erro ao consultar o HubSpot" };
