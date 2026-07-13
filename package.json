@@ -1,0 +1,9 @@
+{
+  "name": "agenda-closers",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Painel ao vivo da agenda/reuniões dos times de closers B2B e B2C (PSA).",
+  "engines": {
+    "node": ">=18"
+  }
+}

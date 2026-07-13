@@ -1,0 +1,15 @@
+# dependências
+node_modules/
+
+# ambiente / segredos (o token do HubSpot fica só na Vercel)
+.env
+.env.local
+.env*.local
+
+# vercel
+.vercel
+
+# SO / editor
+.DS_Store
+Thumbs.db
+*.log

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sala de Reuniões · Closers · Ao Vivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Bruta Pro (fonte de marca da PSA) — self-hosted em /fonts.
+     Usada nos números e títulos (display). Fallback: Archivo Expanded. */
+  @font-face{
+    font-family:"Bruta Pro";
+    src:local("Bruta Pro Compressed ExtraBold"),
+        url("/fonts/brutaprocompressed-extrabold.otf") format("opentype");
+    font-weight:100 900;
+    font-style:normal;
+    font-display:swap;
+  }
+
+  :root{
+    /* ---- Paleta PSA: laranja + azul + branco sobre fundo grafite ---- */
+    --bg:#0b0b0e;
+    --bg-2:#101014;
+    --panel:#141417;
+    --panel-2:#1a1a20;
+    --line:#26262c;
+    --ink:#f4f4f6;
+    --muted:#c4c4cd;
+    --dim:#8a8a93;
+
+    /* cores de marca */
+    --orange:#ff6a1a;
+    --orange-2:#ffa24d;
+    --blue:#5aa9ff;
+
+    /* semáforo de status (sobre a identidade PSA) */
+    --now:#ff6a1a;      /* acontecendo agora  -> laranja PSA */
+    --done:#46d17f;     /* realizada          -> verde */
+    --next:#5aa9ff;     /* futura / a seguir  -> azul PSA */
+    --miss:#ff5a5a;     /* no-show / perdida  -> vermelho */
+
+    --num:'Bruta Pro','Archivo',sans-serif;
+    --sans:'Archivo', system-ui, sans-serif;
+  }
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans);
+    background:
+      radial-gradient(1200px 600px at 85% -10%, rgba(255,106,26,.12), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, rgba(90,169,255,.10), transparent 55%),
+      var(--bg);
+    color:var(--ink);
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- HEADER ---------- */
+  header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:13px 30px;
+    border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg, var(--bg-2), transparent);
+    flex:0 0 auto;
+  }
+  .brand{display:flex;align-items:center;gap:16px}
+  .live-dot{
+    width:14px;height:14px;border-radius:50%;background:var(--now);
+    box-shadow:0 0 0 0 rgba(255,106,26,.6);
+    animation:pulse 1.6s infinite;
+  }
+  @keyframes pulse{
+    0%{box-shadow:0 0 0 0 rgba(255,106,26,.55)}
+    70%{box-shadow:0 0 0 16px rgba(255,106,26,0)}
+    100%{box-shadow:0 0 0 0 rgba(255,106,26,0)}
+  }
+  .brand h1{
+    font-family:var(--num);font-weight:700;font-size:32px;letter-spacing:.10em;
+    text-transform:uppercase;line-height:1;
+  }
+  .brand small{
+    display:block;color:var(--muted);font-size:11px;letter-spacing:.30em;
+    text-transform:uppercase;font-weight:600;margin-top:5px;
+  }
+  .clock{text-align:right}
+
+  /* abas de segmento (B2B / B2C) */
+  .tabs{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:5px}
+  .tab{
+    font-family:var(--num);font-weight:700;font-size:22px;letter-spacing:.10em;text-transform:uppercase;
+    color:var(--muted);padding:7px 26px;border-radius:9px;cursor:pointer;border:none;background:transparent;transition:.2s;
+  }
+  .tab:hover{color:var(--ink)}
+  .tab.active{background:var(--orange);color:#0b0b0e}
+  .clock .time{
+    font-family:var(--num);font-weight:700;font-size:46px;line-height:.9;
+    font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  }
+  .clock .date{color:var(--muted);font-size:13px;text-transform:capitalize;font-weight:500;margin-top:6px}
+
+  /* ---------- KPIs ---------- */
+  .kpis{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:13px;
+    padding:12px 30px;flex:0 0 auto;
+  }
+  .kpi{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:11px 20px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;
+  }
+  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
+  .kpi .big{font-family:var(--num);font-weight:700;font-size:54px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
+  .kpi .lbl{color:var(--muted);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+
+  /* ---------- GRID DE CLOSERS ---------- */
+  .grid{
+    flex:1 1 auto;display:grid;gap:13px;padding:4px 30px 16px;overflow:hidden;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    grid-template-rows:repeat(2,minmax(0,1fr));
+  }
+  .card{
+    background:linear-gradient(180deg,var(--panel-2),var(--panel));
+    border:1px solid var(--line);border-radius:18px;
+    padding:15px 16px 14px;display:flex;flex-direction:column;min-height:0;
+    transition:border-color .4s, box-shadow .4s;
+  }
+  .card.is-now{border-color:rgba(255,106,26,.55);box-shadow:0 0 34px rgba(255,106,26,.14)}
+
+  .who{display:flex;align-items:center;gap:13px;margin-bottom:14px}
+  .avatar{
+    width:52px;height:52px;border-radius:14px;flex:0 0 auto;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--num);font-weight:700;font-size:24px;color:#0b0b0e;
+  }
+  .who .name{font-family:var(--num);font-weight:700;font-size:30px;line-height:1;letter-spacing:.02em}
+  .badge{
+    margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+    padding:6px 11px;border-radius:999px;display:flex;align-items:center;gap:7px;white-space:nowrap;
+  }
+  .badge .b-dot{width:8px;height:8px;border-radius:50%}
+  .badge.now{color:var(--now);background:rgba(255,106,26,.14)}
+  .badge.now .b-dot{background:var(--now);animation:pulse 1.6s infinite}
+  .badge.free{color:var(--muted);background:rgba(196,196,205,.10)}
+  .badge.free .b-dot{background:var(--muted)}
+
+  /* mini stats */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+  .stat{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:11px;padding:9px 6px;text-align:center}
+  .stat .n{font-family:var(--num);font-weight:700;font-size:36px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
+  .stat .t{color:var(--muted);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-top:5px}
+
+  /* agenda do dia (todas as reuniões do closer) — preenche o card, sem scroll */
+  .agenda{flex:1 1 auto;margin-top:16px;display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0}
+  .appt{
+    display:flex;align-items:center;gap:14px;padding:10px 15px;border-radius:12px;flex:1 1 0;
+    min-height:0;overflow:hidden;
+    background:rgba(0,0,0,.32);border:1px solid var(--line);border-left:5px solid var(--c);
+  }
+  .appt .time{display:flex;flex-direction:column;line-height:1;flex:0 0 auto;font-variant-numeric:tabular-nums;text-align:center;min-width:58px}
+  .appt .time .ini{font-family:var(--num);font-weight:700;font-size:30px;color:var(--c)}
+  .appt .time .fim{color:var(--dim);font-size:13px;margin-top:4px}
+  .appt .info{min-width:0;flex:1;overflow:hidden}
+  .appt .info .t{font-weight:600;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .appt .info .c{color:var(--muted);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
+  .appt .tag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);white-space:nowrap}
+  .appt.past{opacity:.5}
+  .appt.live{background:rgba(255,106,26,.16);border-color:rgba(255,106,26,.4);box-shadow:0 0 22px rgba(255,106,26,.16)}
+  .appt.live .tag{display:flex;align-items:center;gap:7px}
+  .appt.live .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--now);animation:pulse 1.6s infinite}
+  .agenda.empty-day{align-items:center;justify-content:center;color:var(--muted);font-size:15px}
+
+  /* densidade: 5–6 reuniões (compacto) — some a hora de término, fontes menores */
+  .agenda.compact{gap:6px}
+  .agenda.compact .appt{gap:12px;padding:8px 14px}
+  .agenda.compact .appt .time{min-width:48px}
+  .agenda.compact .appt .time .ini{font-size:25px}
+  .agenda.compact .appt .time .fim{display:none}
+  .agenda.compact .appt .info .t{font-size:16px}
+  .agenda.compact .appt .info .c{font-size:12.5px;margin-top:2px}
+  .agenda.compact .appt .tag{font-size:11px}
+
+  /* densidade: 7+ reuniões (denso) — título e contato na mesma linha */
+  .agenda.dense{gap:5px}
+  .agenda.dense .appt{gap:11px;padding:7px 13px}
+  .agenda.dense .appt .time{min-width:44px}
+  .agenda.dense .appt .time .ini{font-size:22px}
+  .agenda.dense .appt .time .fim{display:none}
+  .agenda.dense .appt .info{display:flex;flex-direction:row;align-items:baseline;gap:9px;min-width:0}
+  .agenda.dense .appt .info .t{font-size:15px;flex:0 1 auto}
+  .agenda.dense .appt .info .c{font-size:12px;margin-top:0;flex:1 1 auto;min-width:0}
+  .agenda.dense .appt .tag{font-size:10.5px}
+
+  footer{position:fixed;right:14px;bottom:8px;color:var(--dim);font-size:10.5px;letter-spacing:.06em}
+  footer b{color:var(--muted)}
+
+  @media (max-width:900px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .grid{grid-template-columns:1fr;overflow:auto}
+    body{overflow:auto;height:auto;min-height:100vh}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="live-dot"></span>
+    <div>
+      <h1>Sala de Reuniões</h1>
+      <small id="brandSub">Closers · acompanhamento ao vivo</small>
+    </div>
+  </div>
+  <nav class="tabs">
+    <button class="tab" data-seg="B2B">B2B</button>
+    <button class="tab" data-seg="B2C">B2C</button>
+  </nav>
+  <div class="clock">
+    <div class="time" id="clock">--:--:--</div>
+    <div class="date" id="date">—</div>
+  </div>
+</header>
+
+<section class="kpis" id="kpis"></section>
+
+<main class="grid" id="grid"></main>
+
+<footer id="foot">Atualiza automaticamente a cada <b>30s</b> · dados de exemplo</footer>
+
+<script>
+/* ============================================================
+   1) FONTE DE DADOS
+   ------------------------------------------------------------
+   fetchMeetings() consulta o backend em /api/reunioes-hoje
+   (a Private App do HubSpot fica no servidor, NUNCA no
+   navegador da TV). Enquanto o backend não estiver pronto,
+   cai automaticamente nos dados de exemplo.
+
+   Formato esperado por closer:
+   {
+     nome, iniciais, cor, segmento,
+     reunioes: [
+       { titulo, contato, empresa, inicio: Date, fim: Date,
+         outcome: "SCHEDULED" | "COMPLETED" | "NO_SHOW" }
+     ]
+   }
+   ============================================================ */
+
+async function fetchMeetings(){
+  try{
+    const r = await fetch('/api/reunioes-hoje', {cache:'no-store'});
+    if(r.ok){
+      const raw = await r.json();
+      const arr = Array.isArray(raw) ? raw : (raw.closers || []);
+      if(arr.length){
+        setFonte('HubSpot · ao vivo');
+        return arr.map(c => ({
+          ...c,
+          reunioes:(c.reunioes||[]).map(m => ({...m, inicio:new Date(m.inicio), fim:new Date(m.fim)}))
+        }));
+      }
+    }
+  }catch(e){ /* backend ainda não disponível — usa demo */ }
+  setFonte('dados de exemplo');
+  return gerarDadosDemo();
+}
+
+function setFonte(txt){
+  document.getElementById('foot').innerHTML =
+    `Atualiza automaticamente a cada <b>30s</b> · ${txt}`;
+}
+
+/* ---------- Dados de exemplo (âncorados na hora atual) ---------- */
+function gerarDadosDemo(){
+  const h = (deltaMin, durMin=45) => {
+    const ini = new Date(Date.now() + deltaMin*60000);
+    const fim = new Date(ini.getTime() + durMin*60000);
+    return {inicio:ini, fim:fim};
+  };
+  const b2b = [
+    { nome:"Marina Alves", iniciais:"MA", cor:"#5aa9ff", reunioes:[
+      {titulo:"Demonstração da plataforma", contato:"Rafael Souza", empresa:"NexTech", ...h(-200), outcome:"COMPLETED"},
+      {titulo:"Alinhamento de proposta", contato:"Bianca Lima", empresa:"Vetor Log", ...h(-120), outcome:"COMPLETED"},
+      {titulo:"Fechamento anual", contato:"Diego Prado", empresa:"Casa Prado", ...h(-10, 50), outcome:"SCHEDULED"},
+      {titulo:"Follow-up comercial", contato:"Helena Dias", empresa:"Dias & Cia", ...h(70), outcome:"SCHEDULED"},
+      {titulo:"Diagnóstico inicial", contato:"Otávio Reis", empresa:"OR Group", ...h(160), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Bruno Carvalho", iniciais:"BC", cor:"#ff6a1a", reunioes:[
+      {titulo:"Kickoff comercial", contato:"Paula Nunes", empresa:"Nunes Imóveis", ...h(-260), outcome:"COMPLETED"},
+      {titulo:"Renovação de contrato", contato:"Sérgio Mota", empresa:"Mota Log", ...h(-40), outcome:"NO_SHOW"},
+      {titulo:"Apresentação de escopo", contato:"Lívia Torres", empresa:"Torres SA", ...h(35), outcome:"SCHEDULED"},
+      {titulo:"Negociação final", contato:"André Melo", empresa:"Melo Digital", ...h(120), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Camila Rocha", iniciais:"CR", cor:"#ffa24d", reunioes:[
+      {titulo:"Discovery call", contato:"Tiago Farias", empresa:"Farias Ltda", ...h(-150), outcome:"COMPLETED"},
+      {titulo:"Proposta comercial", contato:"Isabela Cruz", empresa:"Cruz Retail", ...h(-5, 40), outcome:"SCHEDULED"},
+      {titulo:"Revisão de contrato", contato:"Gustavo Pinto", empresa:"GP Consultoria", ...h(90), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Diego Santana", iniciais:"DS", cor:"#5aa9ff", reunioes:[
+      {titulo:"Onboarding comercial", contato:"Renata Vieira", empresa:"RV Studio", ...h(-90), outcome:"COMPLETED"},
+      {titulo:"Reunião estratégica", contato:"Fábio Moura", empresa:"Moura Corp", ...h(45), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Letícia Barros", iniciais:"LB", cor:"#ff6a1a", reunioes:[
+      {titulo:"Apresentação inicial", contato:"Marcelo Anjos", empresa:"Anjos & Filhos", ...h(-30, 25), outcome:"SCHEDULED"},
+      {titulo:"Fechamento", contato:"Aline Costa", empresa:"Costa Digital", ...h(15, 30), outcome:"SCHEDULED"},
+      {titulo:"Upsell", contato:"Rodrigo Sá", empresa:"Sá Ventures", ...h(80), outcome:"SCHEDULED"},
+      {titulo:"Follow-up", contato:"Vânia Luz", empresa:"Luz Home", ...h(180), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Pedro Nogueira", iniciais:"PN", cor:"#ffa24d", reunioes:[
+      {titulo:"Demo técnica", contato:"Clara Nunes", empresa:"CN Tech", ...h(-190), outcome:"COMPLETED"},
+      {titulo:"Alinhamento final", contato:"Ivo Ramos", empresa:"Ramos SA", ...h(-70), outcome:"COMPLETED"},
+      {titulo:"Negociação", contato:"Sofia Braga", empresa:"Braga Log", ...h(55), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Fernanda Dias", iniciais:"FD", cor:"#5aa9ff", reunioes:[
+      {titulo:"Discovery B2B", contato:"Márcio Leal", empresa:"Leal Industries", ...h(-140), outcome:"COMPLETED"},
+      {titulo:"Apresentação executiva", contato:"Beatriz Amaral", empresa:"Amaral Group", ...h(-8, 50), outcome:"SCHEDULED"},
+      {titulo:"Proposta comercial", contato:"Caio Fontes", empresa:"Fontes Tech", ...h(65), outcome:"SCHEDULED"},
+      {titulo:"Fechamento", contato:"Núbia Rocha", empresa:"NR Solutions", ...h(150), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Thiago Melo", iniciais:"TM", cor:"#ff6a1a", reunioes:[
+      {titulo:"Reunião de qualificação", contato:"Larissa Pena", empresa:"Pena & Co", ...h(-260), outcome:"COMPLETED"},
+      {titulo:"Follow-up de proposta", contato:"Vitor Andrade", empresa:"Andrade SA", ...h(-180), outcome:"NO_SHOW"},
+      {titulo:"Demonstração comercial", contato:"Elisa Moraes", empresa:"Moraes Digital", ...h(-90), outcome:"COMPLETED"},
+      {titulo:"Reunião estratégica", contato:"Bruno Salles", empresa:"Salles Corp", ...h(-5, 45), outcome:"SCHEDULED"},
+      {titulo:"Negociação de contrato", contato:"Hugo Teixeira", empresa:"HT Ventures", ...h(50), outcome:"SCHEDULED"},
+      {titulo:"Apresentação de escopo", contato:"Carla Freitas", empresa:"Freitas SA", ...h(120), outcome:"SCHEDULED"},
+      {titulo:"Alinhamento pós-venda", contato:"Sandra Lopes", empresa:"Lopes Retail", ...h(190), outcome:"SCHEDULED"},
+    ]},
+  ];
+
+  const b2c = [
+    { nome:"Ana Beatriz", iniciais:"AB", cor:"#ff6a1a", reunioes:[
+      {titulo:"Apresentação do plano", contato:"Lucas Prado", empresa:"—", ...h(-120), outcome:"COMPLETED"},
+      {titulo:"Tira-dúvidas", contato:"Marina Reis", empresa:"—", ...h(-3, 30), outcome:"SCHEDULED"},
+      {titulo:"Fechamento", contato:"Pedro Alves", empresa:"—", ...h(60), outcome:"SCHEDULED"},
+      {titulo:"Renovação", contato:"Júlia Santos", empresa:"—", ...h(140), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Rafael Nunes", iniciais:"RN", cor:"#5aa9ff", reunioes:[
+      {titulo:"Consultoria inicial", contato:"Bruna Melo", empresa:"—", ...h(-95), outcome:"COMPLETED"},
+      {titulo:"Proposta de upgrade", contato:"Igor Faria", empresa:"—", ...h(30), outcome:"SCHEDULED"},
+      {titulo:"Follow-up", contato:"Tânia Cruz", empresa:"—", ...h(110), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Juliana Castro", iniciais:"JC", cor:"#ffa24d", reunioes:[
+      {titulo:"Demonstração", contato:"Felipe Rocha", empresa:"—", ...h(-160), outcome:"COMPLETED"},
+      {titulo:"Reunião de vendas", contato:"Aline Barros", empresa:"—", ...h(-50), outcome:"NO_SHOW"},
+      {titulo:"Fechamento de plano", contato:"Diego Luz", empresa:"—", ...h(-6, 35), outcome:"SCHEDULED"},
+      {titulo:"Onboarding", contato:"Carla Dias", empresa:"—", ...h(75), outcome:"SCHEDULED"},
+      {titulo:"Suporte comercial", contato:"Rui Andrade", empresa:"—", ...h(165), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Marcos Vinícius", iniciais:"MV", cor:"#5aa9ff", reunioes:[
+      {titulo:"Apresentação inicial", contato:"Sônia Freitas", empresa:"—", ...h(20), outcome:"SCHEDULED"},
+      {titulo:"Fechamento", contato:"Léo Martins", empresa:"—", ...h(100), outcome:"SCHEDULED"},
+    ]},
+    { nome:"Patrícia Gomes", iniciais:"PG", cor:"#ffa24d", reunioes:[
+      {titulo:"Consultoria de plano", contato:"Vânia Sá", empresa:"—", ...h(-180), outcome:"COMPLETED"},
+      {titulo:"Tira-dúvidas", contato:"Caio Nunes", empresa:"—", ...h(-40), outcome:"COMPLETED"},
+      {titulo:"Proposta comercial", contato:"Bruno Lima", empresa:"—", ...h(45), outcome:"SCHEDULED"},
+      {titulo:"Renovação", contato:"Elaine Costa", empresa:"—", ...h(130), outcome:"SCHEDULED"},
+    ]},
+  ];
+
+  return [
+    ...b2b.map(c => ({...c, segmento:"B2B"})),
+    ...b2c.map(c => ({...c, segmento:"B2C"})),
+  ];
+}
+
+/* ============================================================
+   2) CÁLCULO DE STATUS (derivado do horário atual)
+   ============================================================ */
+function statusReuniao(m, agora){
+  if (agora >= m.inicio && agora <= m.fim) return "AGORA";
+  if (agora < m.inicio) return "FUTURA";
+  // já passou do fim
+  if (m.outcome === "NO_SHOW") return "PERDIDA";
+  return "REALIZADA"; // COMPLETED ou vencida sem no-show
+}
+
+function resumoCloser(c, agora){
+  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0};
+  let emAndamento=null, aSeguir=null;
+  const futuras=[];
+  c.reunioes.forEach(m=>{
+    const s = statusReuniao(m, agora);
+    if(s==="REALIZADA") r.realizadas++;
+    else if(s==="AGORA"){ r.agora++; emAndamento=m; }
+    else if(s==="FUTURA"){ r.futuras++; futuras.push(m); }
+    else if(s==="PERDIDA") r.perdidas++;
+  });
+  futuras.sort((a,b)=>a.inicio-b.inicio);
+  aSeguir = futuras[0] || null;
+  return {...r, emAndamento, aSeguir};
+}
+
+/* ============================================================
+   3) RENDER
+   ============================================================ */
+const fmtHora = d => d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const el = (html)=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstChild;};
+
+function faltamMin(d, agora){
+  const m = Math.round((d - agora)/60000);
+  if (m <= 0) return "começando";
+  if (m < 60) return `em ${m} min`;
+  const hh=Math.floor(m/60), mm=m%60;
+  return `em ${hh}h${mm?(' '+mm+'min'):''}`;
+}
+
+/* estado: segmento ativo (via URL ?seg=b2c ou pela aba) */
+const state = { seg: (new URLSearchParams(location.search).get('seg')||'B2B').toUpperCase() };
+if(!['B2B','B2C'].includes(state.seg)) state.seg='B2B';
+
+// nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
+function colsFor(n){
+  const map={1:1,2:2,3:3,4:2,5:3,6:3,7:4,8:4,9:3,10:5,11:4,12:4};
+  return map[n] || Math.ceil(Math.sqrt(n));
+}
+
+// contato + empresa, ocultando empresa vazia/traço (comum em B2C)
+function metaContato(m){
+  const emp = (m.empresa||'').trim();
+  return (emp && emp!=='—') ? `${m.contato} · ${emp}` : m.contato;
+}
+
+function render(dados){
+  const agora = new Date();
+
+  // filtra pelo segmento ativo (B2B / B2C)
+  const doSeg = dados.filter(c => c.segmento === state.seg);
+
+  // atualiza abas e subtítulo
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('active', b.dataset.seg===state.seg));
+  document.getElementById('brandSub').textContent = `Closers ${state.seg} · acompanhamento ao vivo`;
+
+  // KPIs agregados do segmento
+  const tot = {agendadas:0, realizadas:0, agora:0, futuras:0};
+  const resumos = doSeg.map(c=>{
+    const r = resumoCloser(c, agora);
+    tot.agendadas+=r.agendadas; tot.realizadas+=r.realizadas; tot.agora+=r.agora; tot.futuras+=r.futuras;
+    return {c, r};
+  });
+
+  const kpiDefs = [
+    {n:tot.agendadas, t:"Agendadas hoje", c:"var(--ink)"},
+    {n:tot.realizadas, t:"Realizadas", c:"var(--done)"},
+    {n:tot.agora, t:"Em andamento", c:"var(--now)"},
+    {n:tot.futuras, t:"Futuras", c:"var(--next)"},
+  ];
+  const kpis = document.getElementById('kpis');
+  kpis.innerHTML='';
+  kpiDefs.forEach(k=>{
+    kpis.appendChild(el(`<div class="kpi" style="--c:${k.c}">
+      <div class="big">${k.n}</div><div class="lbl">${k.t}</div></div>`));
+  });
+
+  // Cards — grade adaptativa ao número de closers do segmento
+  const grid = document.getElementById('grid');
+  const cols = colsFor(resumos.length);
+  const rows = Math.max(1, Math.ceil(resumos.length/cols));
+  grid.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
+  grid.style.gridTemplateRows = `repeat(${rows},minmax(0,1fr))`;
+  grid.innerHTML='';
+  resumos.forEach(({c,r})=>{
+    const emAndamento = !!r.emAndamento;
+
+    // agenda completa do dia: todas as reuniões, ordenadas por horário
+    const reunioesOrdenadas = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
+    let jaMarcouProxima=false;
+    const linhas = reunioesOrdenadas.map(m=>{
+      const s = statusReuniao(m, agora);
+      let cor, tag, cls="";
+      if(s==="AGORA"){ cor="var(--now)"; tag="Agora"; cls="live"; }
+      else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
+      else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
+      else { // FUTURA
+        cor="var(--next)";
+        if(!emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
+        else { tag="Agendada"; }
+      }
+      return `<div class="appt ${cls}" style="--c:${cor}">
+        <div class="time"><span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
+        <div class="info"><div class="t">${m.titulo}</div><div class="c">${metaContato(m)}</div></div>
+        <div class="tag">${tag}</div>
+      </div>`;
+    }).join('');
+    const nReun = reunioesOrdenadas.length;
+    const dens = nReun >= 7 ? ' dense' : (nReun >= 5 ? ' compact' : '');
+    const agendaHTML = linhas
+      ? `<div class="agenda${dens}">${linhas}</div>`
+      : `<div class="agenda empty-day">Nenhuma reunião hoje</div>`;
+
+    const card = el(`<div class="card ${emAndamento?'is-now':''}">
+      <div class="who">
+        <div class="avatar" style="background:${c.cor}">${c.iniciais}</div>
+        <div>
+          <div class="name">${c.nome}</div>
+        </div>
+        <div class="badge ${emAndamento?'now':'free'}">
+          <span class="b-dot"></span>${emAndamento?'Ocupado':'Disponível'}
+        </div>
+      </div>
+
+      <div class="stats">
+        <div class="stat" style="--c:var(--ink)"><div class="n">${r.agendadas}</div><div class="t">Agend.</div></div>
+        <div class="stat" style="--c:var(--done)"><div class="n">${r.realizadas}</div><div class="t">Realiz.</div></div>
+        <div class="stat" style="--c:var(--now)"><div class="n">${r.agora}</div><div class="t">Agora</div></div>
+        <div class="stat" style="--c:var(--next)"><div class="n">${r.futuras}</div><div class="t">Futuras</div></div>
+      </div>
+
+      ${agendaHTML}
+    </div>`);
+    grid.appendChild(card);
+  });
+}
+
+/* ============================================================
+   4) RELÓGIO + CICLO DE ATUALIZAÇÃO
+   ============================================================ */
+function tickRelogio(){
+  const now=new Date();
+  document.getElementById('clock').textContent = now.toLocaleTimeString('pt-BR');
+  document.getElementById('date').textContent =
+    now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
+}
+
+let cache=null;
+async function atualizar(){
+  cache = await fetchMeetings();
+  render(cache);
+}
+
+// relógio a cada segundo; re-render (recalcula "agora") a cada segundo com cache;
+// busca nova no backend a cada 30s
+setInterval(()=>{ tickRelogio(); if(cache) render(cache); }, 1000);
+setInterval(atualizar, 30000);
+
+// abas: clicar alterna o segmento e grava na URL
+// (cada TV pode abrir fixa em ?seg=b2b ou ?seg=b2c e nunca precisar de clique)
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    state.seg = btn.dataset.seg;
+    const u = new URL(location); u.searchParams.set('seg', state.seg.toLowerCase());
+    history.replaceState({}, '', u);
+    if(cache) render(cache);
+  });
+});
+
+tickRelogio();
+atualizar();
+</script>
+</body>
+</html>
