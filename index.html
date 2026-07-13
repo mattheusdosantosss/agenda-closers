@@ -163,7 +163,10 @@
     display:flex;align-items:center;gap:14px;padding:10px 15px;border-radius:12px;flex:1 1 0;
     min-height:0;overflow:hidden;
     background:rgba(0,0,0,.32);border:1px solid var(--line);border-left:5px solid var(--c);
+    color:var(--ink);text-decoration:none;transition:background .2s, border-color .2s;
   }
+  a.appt[href]{cursor:pointer}
+  a.appt[href]:hover{background:rgba(255,255,255,.06);border-color:var(--c)}
   .appt .time{display:flex;flex-direction:column;line-height:1;flex:0 0 auto;font-variant-numeric:tabular-nums;text-align:center;min-width:58px}
   .appt .time .ini{font-family:var(--num);font-weight:700;font-size:30px;color:var(--c)}
   .appt .time .fim{color:var(--dim);font-size:13px;margin-top:4px}
@@ -489,11 +492,12 @@ function render(dados){
         if(!emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
         else { tag="Agendada"; }
       }
-      return `<div class="appt ${cls}" style="--c:${cor}">
+      const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
+      return `<a class="appt ${cls}" style="--c:${cor}"${href}>
         <div class="time"><span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
         <div class="info"><div class="t">${m.titulo}</div><div class="c">${metaContato(m)}</div></div>
         <div class="tag">${tag}</div>
-      </div>`;
+      </a>`;
     }).join('');
     const nReun = reunioesOrdenadas.length;
     const dens = nReun >= 7 ? ' dense' : (nReun >= 5 ? ' compact' : '');

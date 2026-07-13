@@ -45,6 +45,12 @@ const DEFAULT_B2C = [
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
 const BRT_OFFSET_MIN = -180;
 
+// Links para abrir o registro no HubSpot (portal da PSA).
+const PORTAL_ID = process.env.HUBSPOT_PORTAL_ID || "49656171";
+const HS_UI = "https://app.hubspot.com";
+const linkContato = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-1/${id}`;
+const linkReuniao = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-47/${id}`;
+
 function headers(token) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
@@ -221,23 +227,29 @@ async function contatosDasMeetings(token, meetingIds) {
       const p = c.properties ?? {};
       const nome =
         `${(p.firstname ?? "").trim()} ${(p.lastname ?? "").trim()}`.trim() || "Contato";
-      contatos.set(String(c.id), { contato: nome, empresa: (p.company ?? "").trim() || "—" });
+      contatos.set(String(c.id), {
+        contato: nome,
+        empresa: (p.company ?? "").trim() || "—",
+        contatoId: String(c.id),
+      });
     }
   }
 
   for (const [mId, cId] of meetingToContact) {
-    info.set(mId, contatos.get(cId) || { contato: "—", empresa: "—" });
+    info.set(mId, contatos.get(cId) || { contato: "—", empresa: "—", contatoId: cId });
   }
   return info;
 }
 
-// SCHEDULED / COMPLETED / NO_SHOW  (RESCHEDULED/CANCELED viram SCHEDULED por padrão;
-// o front decide "realizada" pelo horário quando não há no-show).
+// Classifica o resultado bruto do HubSpot. CANCELED é usado para EXCLUIR a
+// reunião (não conta como marcada). O front só entende SCHEDULED/COMPLETED/
+// NO_SHOW e decide "realizada" pelo horário quando não há no-show.
 function normalizaOutcome(v) {
   const s = String(v || "").toUpperCase();
+  if (s.includes("CANCEL")) return "CANCELED";
   if (s.includes("NO_SHOW") || s.includes("NO SHOW")) return "NO_SHOW";
   if (s.includes("COMPLETED")) return "COMPLETED";
-  return "SCHEDULED";
+  return "SCHEDULED"; // SCHEDULED, RESCHEDULED ou vazio
 }
 
 async function montarSegmento(token, ownerIds, segmento, janela) {
@@ -256,12 +268,14 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
   const porOwner = new Map();
   for (const m of meetings) {
     const p = m.properties ?? {};
-    const owner = String(p.hubspot_owner_id ?? "");
-    if (!porOwner.has(owner)) porOwner.set(owner, []);
+    const oc = normalizaOutcome(p.hs_meeting_outcome);
+    if (oc === "CANCELED") continue; // cancelada não conta como marcada
     const ini = parseHsDate(p.hs_meeting_start_time);
     if (!ini) continue; // sem início válido não dá pra posicionar na agenda
     const fim =
       parseHsDate(p.hs_meeting_end_time) || new Date(ini.getTime() + 45 * 60000);
+    const owner = String(p.hubspot_owner_id ?? "");
+    if (!porOwner.has(owner)) porOwner.set(owner, []);
     const ct = contatos.get(String(m.id)) || { contato: "—", empresa: "—" };
     porOwner.get(owner).push({
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
@@ -269,7 +283,8 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
       empresa: segmento === "B2C" ? "—" : ct.empresa,
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
-      outcome: normalizaOutcome(p.hs_meeting_outcome),
+      outcome: oc === "NO_SHOW" ? "NO_SHOW" : oc === "COMPLETED" ? "COMPLETED" : "SCHEDULED",
+      link: ct.contatoId ? linkContato(ct.contatoId) : linkReuniao(String(m.id)),
     });
   }
 
