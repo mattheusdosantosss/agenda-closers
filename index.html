@@ -37,11 +37,12 @@
     --orange-2:#ffa24d;
     --blue:#5aa9ff;
 
-    /* semáforo de status (sobre a identidade PSA) */
-    --now:#ff6a1a;      /* acontecendo agora  -> laranja PSA */
-    --done:#46d17f;     /* realizada          -> verde */
-    --next:#5aa9ff;     /* futura / a seguir  -> azul PSA */
-    --miss:#ff5a5a;     /* no-show / perdida  -> vermelho */
+    /* semáforo de status */
+    --now:#FF6A00;      /* em andamento -> laranja */
+    --done:#3AAF3A;     /* realizada    -> verde */
+    --sched:#FFB703;    /* agendada     -> âmbar */
+    --next:#0f5132;     /* futura       -> verde escuro */
+    --miss:#ff5a5a;     /* no-show      -> vermelho */
 
     --num:'Bruta Pro','Archivo',sans-serif;
     --sans:'Archivo', system-ui, sans-serif;
@@ -104,7 +105,7 @@
   .tab.active{background:var(--orange);color:#0b0b0e}
   /* período: fonte um pouco menor e destaque azul (diferencia do segmento) */
   .tabs.periodo .tab{font-size:17px;padding:7px 16px;letter-spacing:.06em}
-  .tabs.periodo .tab.active{background:var(--next);color:#0b0b0e}
+  .tabs.periodo .tab.active{background:var(--ink);color:#0b0b0e}
   .clock .time{
     font-family:var(--num);font-weight:700;font-size:46px;line-height:.9;
     font-variant-numeric:tabular-nums;letter-spacing:.02em;
@@ -519,7 +520,7 @@ function render(dados){
   });
 
   const kpiDefs = [
-    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--ink)"},
+    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--sched)"},
     {n:tot.realizadas, t:"Realizadas", c:"var(--done)"},
     {n:tot.agora, t:"Em andamento", c:"var(--now)"},
     {n:tot.futuras, t:"Futuras", c:"var(--next)"},
@@ -549,7 +550,7 @@ function render(dados){
       nLinhas = dias.length;
       linhas = dias.map(g=>{
         const hoje = ehMesmoDia(g.dia, agora);
-        const cor = hoje ? "var(--now)" : "var(--next)";
+        const cor = hoje ? "var(--now)" : "var(--sched)";
         const titulo = `${capitaliza(fmtDow(g.dia))} · ${fmtDia(g.dia)}`;
         const partes=[];
         if(g.realizadas) partes.push(`${g.realizadas} realiz.`);
@@ -575,7 +576,7 @@ function render(dados){
         else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
         else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
         else { // FUTURA
-          cor="var(--next)";
+          cor="var(--sched)";
           // "em X min" só faz sentido hoje; amanhã mostra "Agendada"
           if(state.range==='hoje' && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
           else { tag="Agendada"; }
@@ -611,7 +612,7 @@ function render(dados){
       </div>
 
       <div class="stats">
-        <div class="stat" style="--c:var(--ink)"><div class="n">${r.agendadas}</div><div class="t">Agend.</div></div>
+        <div class="stat" style="--c:var(--sched)"><div class="n">${r.agendadas}</div><div class="t">Agend.</div></div>
         <div class="stat" style="--c:var(--done)"><div class="n">${r.realizadas}</div><div class="t">Realiz.</div></div>
         <div class="stat" style="--c:var(--now)"><div class="n">${r.agora}</div><div class="t">Agora</div></div>
         <div class="stat" style="--c:var(--next)"><div class="n">${r.futuras}</div><div class="t">Futuras</div></div>
