@@ -51,6 +51,27 @@ const HS_UI = "https://app.hubspot.com";
 const linkContato = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-1/${id}`;
 const linkReuniao = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-47/${id}`;
 
+// Normaliza texto p/ comparação: sem acento, minúsculo, sem espaços nas pontas.
+const semAcento = (s) =>
+  String(s || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+
+// No B2C não entram estes "Tipos de chamada e reunião" (nem nada de B2B).
+// Sobrescrevível por HUBSPOT_B2C_TIPOS_EXCLUIR (separado por ";").
+const B2C_TIPOS_EXCLUIR = (
+  process.env.HUBSPOT_B2C_TIPOS_EXCLUIR ||
+  "B2C | Reunião de FollowUp;Reunião de Relacionamento;Ligação via Whatsapp"
+)
+  .split(";")
+  .map(semAcento)
+  .filter(Boolean);
+
+function tipoBloqueadoB2C(tipo) {
+  const t = semAcento(tipo);
+  if (!t) return false; // reunião sem tipo definido: mantém
+  if (t.includes("b2b")) return true; // qualquer coisa de B2B
+  return B2C_TIPOS_EXCLUIR.some((x) => t.includes(x));
+}
+
 function headers(token) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
@@ -178,6 +199,7 @@ async function buscarMeetings(token, ownerIds, janela) {
         "hs_meeting_start_time",
         "hs_meeting_end_time",
         "hs_meeting_outcome",
+        "hs_activity_type",
         "hubspot_owner_id",
       ],
       sorts: [{ propertyName: "hs_meeting_start_time", direction: "ASCENDING" }],
@@ -307,6 +329,9 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
     const p = m.properties ?? {};
     const oc = normalizaOutcome(p.hs_meeting_outcome);
     if (oc === "CANCELED") continue; // cancelada não conta como marcada
+    const tipo = (p.hs_activity_type ?? "").trim();
+    // No B2C, fora os tipos de follow-up/relacionamento/whatsapp e qualquer B2B.
+    if (segmento === "B2C" && tipoBloqueadoB2C(tipo)) continue;
     const ini = parseHsDate(p.hs_meeting_start_time);
     if (!ini) continue; // sem início válido não dá pra posicionar na agenda
     const fim =
@@ -318,6 +343,7 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
       contato: ct.contato,
       empresa: segmento === "B2C" ? "—" : ct.empresa,
+      tipo,
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
       outcome: oc === "NO_SHOW" ? "NO_SHOW" : oc === "COMPLETED" ? "COMPLETED" : "SCHEDULED",
