@@ -278,7 +278,7 @@ async function fetchMeetings(){
     if(r.ok && raw){
       const arr = Array.isArray(raw) ? raw : (raw.closers || []);
       if(arr.length){
-        setFonte('HubSpot · ao vivo');
+        setFonte('HubSpot · ao vivo', true); // ok=true -> registra a sincronização
         return arr.map(c => ({
           ...c,
           reunioes:(c.reunioes||[]).map(m => ({...m, inicio:new Date(m.inicio), fim:new Date(m.fim)}))
@@ -295,9 +295,27 @@ async function fetchMeetings(){
   return gerarDadosDemo();
 }
 
-function setFonte(txt){
-  document.getElementById('foot').innerHTML =
-    `Atualiza automaticamente a cada <b>30s</b> · ${txt}`;
+// Rodapé com a fonte dos dados e a hora da ÚLTIMA sincronização real.
+// ok=true (fetch do HubSpot concluído) carimba o horário; erros não carimbam,
+// então dá pra ver quando o painel parou de atualizar.
+let ultimaSync = null;
+let fonteAtual = 'dados de exemplo';
+function setFonte(txt, ok){
+  fonteAtual = txt;
+  if(ok) ultimaSync = new Date();
+  pintarRodape();
+}
+function pintarRodape(){
+  const foot = document.getElementById('foot');
+  if(!foot) return;
+  let sync = '';
+  if(ultimaSync){
+    const hh = ultimaSync.toLocaleTimeString('pt-BR');
+    const secs = Math.max(0, Math.round((Date.now()-ultimaSync.getTime())/1000));
+    const atrasado = secs > 75 ? ' · <b style="color:var(--miss)">sincronização atrasada</b>' : '';
+    sync = ` · sincronizado <b>${hh}</b> (há ${secs}s)${atrasado}`;
+  }
+  foot.innerHTML = `Atualiza a cada <b>30s</b> · ${fonteAtual}${sync}`;
 }
 
 /* ---------- Dados de exemplo (âncorados na hora atual) ---------- */
@@ -617,8 +635,8 @@ async function atualizar(){
 }
 
 // relógio a cada segundo; re-render (recalcula "agora") a cada segundo com cache;
-// busca nova no backend a cada 30s
-setInterval(()=>{ tickRelogio(); if(cache) render(cache); }, 1000);
+// atualiza o "há Xs" do rodapé; busca nova no backend a cada 30s
+setInterval(()=>{ tickRelogio(); pintarRodape(); if(cache) render(cache); }, 1000);
 setInterval(atualizar, 30000);
 
 // abas de SEGMENTO: filtro no cliente (só re-renderiza) e grava na URL
