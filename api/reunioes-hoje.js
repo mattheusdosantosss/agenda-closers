@@ -51,25 +51,37 @@ const HS_UI = "https://app.hubspot.com";
 const linkContato = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-1/${id}`;
 const linkReuniao = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-47/${id}`;
 
-// Normaliza texto p/ comparação: sem acento, minúsculo, sem espaços nas pontas.
+// Normaliza p/ comparação: sem acento, minúsculo, espaços colapsados.
 const semAcento = (s) =>
-  String(s || "").normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase().trim();
+  String(s || "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 
-// No B2C não entram estes "Tipos de chamada e reunião" (nem nada de B2B).
-// Sobrescrevível por HUBSPOT_B2C_TIPOS_EXCLUIR (separado por ";").
-const B2C_TIPOS_EXCLUIR = (
-  process.env.HUBSPOT_B2C_TIPOS_EXCLUIR ||
-  "B2C | Reunião de FollowUp;Reunião de Relacionamento;Ligação via Whatsapp"
+// No B2C SÓ entram estes "Tipos de chamada e reunião" (mesma lista do relatório
+// do HubSpot). Allowlist -> tudo que não estiver aqui (inclusive vazio, B2B,
+// follow-up, relacionamento, whatsapp) fica de fora. Override por
+// HUBSPOT_B2C_TIPOS (separado por ";").
+const B2C_TIPOS = (
+  process.env.HUBSPOT_B2C_TIPOS ||
+  [
+    "B2C | Marcação Merlin",
+    "B2C | Remarcação IA (No-show)",
+    "B2C | Reunião SDR",
+    "B2C | Marcação IA",
+    "B2C | CRM",
+    "B2C | Reunião de Venda (marcada pelo SDR)",
+  ].join(";")
 )
   .split(";")
   .map(semAcento)
   .filter(Boolean);
 
-function tipoBloqueadoB2C(tipo) {
-  const t = semAcento(tipo);
-  if (!t) return false; // reunião sem tipo definido: mantém
-  if (t.includes("b2b")) return true; // qualquer coisa de B2B
-  return B2C_TIPOS_EXCLUIR.some((x) => t.includes(x));
+// match exato (após normalizar) — evita "Marcação IA" casar com "Remarcação IA".
+function tipoPermitidoB2C(tipo) {
+  return B2C_TIPOS.includes(semAcento(tipo));
 }
 
 function headers(token) {
@@ -330,9 +342,8 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
     const oc = normalizaOutcome(p.hs_meeting_outcome);
     if (oc === "CANCELED") continue; // cancelada não conta como marcada
     const tipo = (p.hs_activity_type ?? "").trim();
-    // No B2C, fora os tipos de follow-up/relacionamento/whatsapp, qualquer B2B
-    // e também as reuniões SEM tipo definido.
-    if (segmento === "B2C" && (!tipo || tipoBloqueadoB2C(tipo))) continue;
+    // No B2C, só entram os tipos da allowlist (mesma lista do relatório).
+    if (segmento === "B2C" && !tipoPermitidoB2C(tipo)) continue;
     const ini = parseHsDate(p.hs_meeting_start_time);
     if (!ini) continue; // sem início válido não dá pra posicionar na agenda
     const fim =

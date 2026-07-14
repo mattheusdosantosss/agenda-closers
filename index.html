@@ -434,15 +434,17 @@ function gerarDadosDemo(){
    2) CÁLCULO DE STATUS (derivado do horário atual)
    ============================================================ */
 function statusReuniao(m, agora){
+  // Resultado registrado tem prioridade (bate com o relatório do HubSpot):
+  if (m.outcome === "COMPLETED") return "REALIZADA";   // = "Concluído"
+  if (m.outcome === "NO_SHOW")   return "PERDIDA";      // = "No-show"
+  // Sem resultado ainda -> decide pelo horário:
   if (agora >= m.inicio && agora <= m.fim) return "AGORA";
   if (agora < m.inicio) return "FUTURA";
-  // já passou do fim
-  if (m.outcome === "NO_SHOW") return "PERDIDA";
-  return "REALIZADA"; // COMPLETED ou vencida sem no-show
+  return "PENDENTE"; // já passou do horário e ninguém marcou o resultado
 }
 
 function resumoCloser(c, agora){
-  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0};
+  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0};
   let emAndamento=null, aSeguir=null;
   const futuras=[];
   c.reunioes.forEach(m=>{
@@ -451,6 +453,7 @@ function resumoCloser(c, agora){
     else if(s==="AGORA"){ r.agora++; emAndamento=m; }
     else if(s==="FUTURA"){ r.futuras++; futuras.push(m); }
     else if(s==="PERDIDA") r.perdidas++;
+    else if(s==="PENDENTE") r.pendentes++;
   });
   futuras.sort((a,b)=>a.inicio-b.inicio);
   aSeguir = futuras[0] || null;
@@ -472,7 +475,7 @@ function agrupaPorDia(reunioes, agora){
   const byDay = new Map();
   reunioes.forEach(m=>{
     const key = m.inicio.toDateString();
-    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0});
+    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0});
     const g = byDay.get(key);
     g.total++;
     const s = statusReuniao(m, agora);
@@ -480,6 +483,7 @@ function agrupaPorDia(reunioes, agora){
     else if(s==="AGORA") g.agora++;
     else if(s==="FUTURA") g.futuras++;
     else if(s==="PERDIDA") g.perdidas++;
+    else if(s==="PENDENTE") g.pendentes++;
   });
   return [...byDay.values()].sort((a,b)=>a.dia-b.dia);
 }
@@ -571,6 +575,7 @@ function render(dados){
         if(g.realizadas) partes.push(`${g.realizadas} realiz.`);
         if(g.agora) partes.push(`${g.agora} agora`);
         if(g.futuras) partes.push(`${g.futuras} agend.`);
+        if(g.pendentes) partes.push(`${g.pendentes} a registrar`);
         if(g.perdidas) partes.push(`${g.perdidas} no-show`);
         const sub = partes.join(" · ") || "—";
         return `<div class="appt" style="--c:${cor}">
@@ -590,6 +595,7 @@ function render(dados){
         if(s==="AGORA"){ cor="var(--now)"; tag="Agora"; cls="live"; }
         else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
         else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
+        else if(s==="PENDENTE"){ cor="var(--muted)"; tag="A registrar"; cls=""; }
         else { // FUTURA
           cor="var(--sched)";
           // "em X min" só faz sentido hoje; amanhã mostra "Agendada"
