@@ -330,8 +330,9 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
     const oc = normalizaOutcome(p.hs_meeting_outcome);
     if (oc === "CANCELED") continue; // cancelada não conta como marcada
     const tipo = (p.hs_activity_type ?? "").trim();
-    // No B2C, fora os tipos de follow-up/relacionamento/whatsapp e qualquer B2B.
-    if (segmento === "B2C" && tipoBloqueadoB2C(tipo)) continue;
+    // No B2C, fora os tipos de follow-up/relacionamento/whatsapp, qualquer B2B
+    // e também as reuniões SEM tipo definido.
+    if (segmento === "B2C" && (!tipo || tipoBloqueadoB2C(tipo))) continue;
     const ini = parseHsDate(p.hs_meeting_start_time);
     if (!ini) continue; // sem início válido não dá pra posicionar na agenda
     const fim =
