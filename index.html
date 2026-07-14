@@ -210,6 +210,21 @@
   .agenda.dense .appt .info .c{font-size:12px;margin-top:0;flex:1 1 auto;min-width:0}
   .agenda.dense .appt .tag{font-size:10.5px}
 
+  /* muitas reuniões (9+): 2 colunas para caber tudo sem estourar/cortar */
+  .agenda.grade{
+    display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:minmax(0,1fr);
+    gap:6px 10px;align-content:stretch;
+  }
+  .agenda.grade .appt{gap:10px;padding:6px 12px;border-left-width:4px}
+  .agenda.grade .appt .time{min-width:42px}
+  .agenda.grade .appt .time .dia{display:none}
+  .agenda.grade .appt .time .ini{font-size:18px}
+  .agenda.grade .appt .time .fim{display:none}
+  .agenda.grade .appt .info{display:flex;flex-direction:row;align-items:baseline;gap:8px;min-width:0}
+  .agenda.grade .appt .info .t{font-size:14px;flex:0 1 auto}
+  .agenda.grade .appt .info .c{font-size:11.5px;margin-top:0;flex:1 1 auto;min-width:0}
+  .agenda.grade .appt .tag{font-size:10px}
+
   footer{position:fixed;right:14px;bottom:8px;color:var(--dim);font-size:10.5px;letter-spacing:.06em}
   footer b{color:var(--muted)}
 
@@ -593,7 +608,7 @@ function render(dados){
         </a>`;
       }).join('');
     }
-    const dens = nLinhas >= 7 ? ' dense' : (nLinhas >= 5 ? ' compact' : '');
+    const dens = nLinhas >= 9 ? ' grade' : (nLinhas >= 7 ? ' dense' : (nLinhas >= 5 ? ' compact' : ''));
     const vazio = state.range==='hoje' ? 'Nenhuma reunião hoje' : `Nenhuma reunião ${RANGE_LABEL[state.range]}`;
     const agendaHTML = linhas
       ? `<div class="agenda${dens}">${linhas}</div>`
