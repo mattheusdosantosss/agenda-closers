@@ -581,15 +581,13 @@ function render(dados){
           if(state.range==='hoje' && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
           else { tag="Agendada"; }
         }
-        // amanhã mostra a data junto do horário
-        const diaHTML = state.range!=='hoje' ? `<span class="dia">${fmtDia(m.inicio)}</span>` : '';
         // mais clean: nome do contato vinculado (cai no título só se não houver contato)
         const nomeLinha = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const emp = (m.empresa||'').trim();
         const subLinha = (emp && emp!=='—') ? `<div class="c">${emp}</div>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="appt ${cls}" style="--c:${cor}"${href}>
-          <div class="time">${diaHTML}<span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
+          <div class="time"><span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
           <div class="info"><div class="t">${nomeLinha}</div>${subLinha}</div>
           <div class="tag">${tag}</div>
         </a>`;
