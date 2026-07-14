@@ -6,7 +6,7 @@
 <title>Agenda de Reuniões · Closers · Ao Vivo</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /* Bruta Pro (fonte de marca da PSA) — self-hosted em /fonts.
      Usada nos números e títulos (display). Fallback: Archivo Expanded. */
@@ -45,6 +45,7 @@
 
     --num:'Bruta Pro','Archivo',sans-serif;
     --sans:'Archivo', system-ui, sans-serif;
+    --inter:'Inter', system-ui, sans-serif;
   }
 
   *{margin:0;padding:0;box-sizing:border-box}
@@ -144,7 +145,7 @@
     display:flex;align-items:center;justify-content:center;
     font-family:var(--num);font-weight:700;font-size:24px;color:#0b0b0e;
   }
-  .who .name{font-family:var(--num);font-weight:700;font-size:30px;line-height:1;letter-spacing:.02em}
+  .who .name{font-family:var(--inter);font-weight:700;font-size:24px;line-height:1.05;letter-spacing:0}
   .badge{
     margin-left:auto;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
     padding:6px 11px;border-radius:999px;display:flex;align-items:center;gap:7px;white-space:nowrap;
@@ -171,9 +172,9 @@
   }
   a.appt[href]{cursor:pointer}
   a.appt[href]:hover{background:rgba(255,255,255,.06);border-color:var(--c)}
-  .appt .time{display:flex;flex-direction:column;line-height:1;flex:0 0 auto;font-variant-numeric:tabular-nums;text-align:center;min-width:58px}
+  .appt .time{display:flex;flex-direction:column;line-height:1;flex:0 0 auto;font-variant-numeric:tabular-nums;text-align:center;min-width:58px;font-family:var(--inter)}
   .appt .time .dia{color:var(--muted);font-size:12px;font-weight:600;margin-bottom:5px;white-space:nowrap}
-  .appt .time .ini{font-family:var(--num);font-weight:700;font-size:30px;color:var(--c)}
+  .appt .time .ini{font-family:var(--inter);font-weight:700;font-size:24px;color:var(--c)}
   .appt .time .fim{color:var(--dim);font-size:13px;margin-top:4px}
   .appt .info{min-width:0;flex:1;overflow:hidden}
   .appt .info .t{font-weight:600;font-size:18px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -190,7 +191,7 @@
   .agenda.compact .appt{gap:12px;padding:8px 14px}
   .agenda.compact .appt .time{min-width:48px}
   .agenda.compact .appt .time .dia{font-size:11px;margin-bottom:3px}
-  .agenda.compact .appt .time .ini{font-size:25px}
+  .agenda.compact .appt .time .ini{font-size:21px}
   .agenda.compact .appt .time .fim{display:none}
   .agenda.compact .appt .info .t{font-size:16px}
   .agenda.compact .appt .info .c{font-size:12.5px;margin-top:2px}
@@ -201,7 +202,7 @@
   .agenda.dense .appt{gap:11px;padding:7px 13px}
   .agenda.dense .appt .time{min-width:44px}
   .agenda.dense .appt .time .dia{font-size:10px;margin-bottom:2px}
-  .agenda.dense .appt .time .ini{font-size:22px}
+  .agenda.dense .appt .time .ini{font-size:19px}
   .agenda.dense .appt .time .fim{display:none}
   .agenda.dense .appt .info{display:flex;flex-direction:row;align-items:baseline;gap:9px;min-width:0}
   .agenda.dense .appt .info .t{font-size:15px;flex:0 1 auto}
@@ -581,10 +582,14 @@ function render(dados){
         }
         // amanhã mostra a data junto do horário
         const diaHTML = state.range!=='hoje' ? `<span class="dia">${fmtDia(m.inicio)}</span>` : '';
+        // mais clean: nome do contato vinculado (cai no título só se não houver contato)
+        const nomeLinha = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
+        const emp = (m.empresa||'').trim();
+        const subLinha = (emp && emp!=='—') ? `<div class="c">${emp}</div>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="appt ${cls}" style="--c:${cor}"${href}>
           <div class="time">${diaHTML}<span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
-          <div class="info"><div class="t">${m.titulo}</div><div class="c">${metaContato(m)}</div></div>
+          <div class="info"><div class="t">${nomeLinha}</div>${subLinha}</div>
           <div class="tag">${tag}</div>
         </a>`;
       }).join('');
