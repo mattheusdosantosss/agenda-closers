@@ -44,6 +44,10 @@ const DEFAULT_B2C = [
 
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
 const BRT_OFFSET_MIN = -180;
+const horaBRT = (d) => {
+  const b = new Date(d.getTime() + BRT_OFFSET_MIN * 60000);
+  return `${String(b.getUTCHours()).padStart(2, "0")}:${String(b.getUTCMinutes()).padStart(2, "0")}`;
+};
 
 // Links para abrir o registro no HubSpot (portal da PSA).
 const PORTAL_ID = process.env.HUBSPOT_PORTAL_ID || "49656171";
@@ -348,8 +352,18 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
     if (d) d.brutoDoHubSpot++;
     const tipo = (p.hs_activity_type ?? "").trim();
     const oc = normalizaOutcome(p.hs_meeting_outcome);
+    const iniDbg = parseHsDate(p.hs_meeting_start_time);
+    const bloqueado = segmento === "B2C" && tipoBloqueadoB2C(tipo);
+    if (d) {
+      (d.itens = d.itens || []).push({
+        h: iniDbg ? horaBRT(iniDbg) : "??:??",
+        tipo: tipo || "(sem tipo)",
+        outcome: oc,
+        ok: !bloqueado && !!iniDbg,
+      });
+    }
     // No B2C, fora só os tipos bloqueados (FollowUp/Relacionamento/Whatsapp/B2B/sem-tipo).
-    if (segmento === "B2C" && tipoBloqueadoB2C(tipo)) {
+    if (bloqueado) {
       if (d) { d.tipoForaDaLista++; const k = tipo || "(sem tipo)"; d.tiposDescartados[k] = (d.tiposDescartados[k] || 0) + 1; }
       continue;
     }
