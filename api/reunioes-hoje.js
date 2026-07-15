@@ -60,28 +60,19 @@ const semAcento = (s) =>
     .trim()
     .toLowerCase();
 
-// No B2C SÓ entram estes "Tipos de chamada e reunião" (mesma lista do relatório
-// do HubSpot). Allowlist -> tudo que não estiver aqui (inclusive vazio, B2B,
-// follow-up, relacionamento, whatsapp) fica de fora. Override por
-// HUBSPOT_B2C_TIPOS (separado por ";").
-const B2C_TIPOS = (
-  process.env.HUBSPOT_B2C_TIPOS ||
-  [
-    "B2C | Marcação Merlin",
-    "B2C | Remarcação IA (No-show)",
-    "B2C | Reunião SDR",
-    "B2C | Marcação IA",
-    "B2C | CRM",
-    "B2C | Reunião de Venda (marcada pelo SDR)",
-  ].join(";")
+// No B2C, conta TUDO que foi agendado, EXCETO estes tipos (e reunião sem tipo).
+// Lista de exclusão (trechos, sem acento). Override: HUBSPOT_B2C_TIPOS_EXCLUIR.
+const B2C_TIPOS_EXCLUIR = (
+  process.env.HUBSPOT_B2C_TIPOS_EXCLUIR || "followup;relacionamento;whatsapp;b2b"
 )
   .split(";")
   .map(semAcento)
   .filter(Boolean);
 
-// match exato (após normalizar) — evita "Marcação IA" casar com "Remarcação IA".
-function tipoPermitidoB2C(tipo) {
-  return B2C_TIPOS.includes(semAcento(tipo));
+function tipoBloqueadoB2C(tipo) {
+  const t = semAcento(tipo);
+  if (!t) return true; // reunião sem tipo definido não entra
+  return B2C_TIPOS_EXCLUIR.some((x) => t.includes(x));
 }
 
 function headers(token) {
@@ -357,9 +348,8 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
     if (d) d.brutoDoHubSpot++;
     const tipo = (p.hs_activity_type ?? "").trim();
     const oc = normalizaOutcome(p.hs_meeting_outcome);
-    if (oc === "CANCELED") { if (d) d.canceladas++; continue; } // cancelada não conta
-    // No B2C, só entram os tipos da allowlist (mesma lista do relatório).
-    if (segmento === "B2C" && !tipoPermitidoB2C(tipo)) {
+    // No B2C, fora só os tipos bloqueados (FollowUp/Relacionamento/Whatsapp/B2B/sem-tipo).
+    if (segmento === "B2C" && tipoBloqueadoB2C(tipo)) {
       if (d) { d.tipoForaDaLista++; const k = tipo || "(sem tipo)"; d.tiposDescartados[k] = (d.tiposDescartados[k] || 0) + 1; }
       continue;
     }
@@ -368,7 +358,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
     const fim =
       parseHsDate(p.hs_meeting_end_time) || new Date(ini.getTime() + 45 * 60000);
     if (!porOwner.has(owner)) porOwner.set(owner, []);
-    if (d) { d.mantidas++; const k = tipo || "(sem tipo)"; d.tiposMantidos[k] = (d.tiposMantidos[k] || 0) + 1; }
+    if (d) { d.mantidas++; if (oc === "CANCELED") d.canceladas++; const k = tipo || "(sem tipo)"; d.tiposMantidos[k] = (d.tiposMantidos[k] || 0) + 1; }
     const ct = contatos.get(String(m.id)) || { contato: "—", empresa: "—" };
     porOwner.get(owner).push({
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
@@ -377,7 +367,12 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       tipo,
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
-      outcome: oc === "NO_SHOW" ? "NO_SHOW" : oc === "COMPLETED" ? "COMPLETED" : "SCHEDULED",
+      // conta tudo que foi agendado; cancelada e no-show são circunstanciais
+      outcome:
+        oc === "CANCELED" ? "CANCELED"
+        : oc === "NO_SHOW" ? "NO_SHOW"
+        : oc === "COMPLETED" ? "COMPLETED"
+        : "SCHEDULED",
       link: ct.contatoId ? linkContato(ct.contatoId) : linkReuniao(String(m.id)),
     });
   }

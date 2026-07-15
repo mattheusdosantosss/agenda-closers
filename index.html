@@ -182,6 +182,7 @@
   .appt .info .c{color:var(--muted);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:3px}
   .appt .tag{margin-left:auto;flex:0 0 auto;font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);white-space:nowrap}
   .appt.past{opacity:.5}
+  .appt.cancel .info .t{text-decoration:line-through}
   .appt.live{background:rgba(255,106,26,.16);border-color:rgba(255,106,26,.4);box-shadow:0 0 22px rgba(255,106,26,.16)}
   .appt.live .tag{display:flex;align-items:center;gap:7px}
   .appt.live .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--now);animation:pulse 1.6s infinite}
@@ -435,6 +436,7 @@ function gerarDadosDemo(){
    ============================================================ */
 function statusReuniao(m, agora){
   // Resultado registrado tem prioridade (bate com o relatório do HubSpot):
+  if (m.outcome === "CANCELED")  return "CANCELADA";   // agendada mas cancelada
   if (m.outcome === "COMPLETED") return "REALIZADA";   // = "Concluído"
   if (m.outcome === "NO_SHOW")   return "PERDIDA";      // = "No-show"
   // Sem resultado ainda -> decide pelo horário:
@@ -444,7 +446,7 @@ function statusReuniao(m, agora){
 }
 
 function resumoCloser(c, agora){
-  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0};
+  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0};
   let emAndamento=null, aSeguir=null;
   const futuras=[];
   c.reunioes.forEach(m=>{
@@ -454,6 +456,7 @@ function resumoCloser(c, agora){
     else if(s==="FUTURA"){ r.futuras++; futuras.push(m); }
     else if(s==="PERDIDA") r.perdidas++;
     else if(s==="PENDENTE") r.pendentes++;
+    else if(s==="CANCELADA") r.canceladas++;
   });
   futuras.sort((a,b)=>a.inicio-b.inicio);
   aSeguir = futuras[0] || null;
@@ -475,7 +478,7 @@ function agrupaPorDia(reunioes, agora){
   const byDay = new Map();
   reunioes.forEach(m=>{
     const key = m.inicio.toDateString();
-    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0});
+    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0});
     const g = byDay.get(key);
     g.total++;
     const s = statusReuniao(m, agora);
@@ -484,6 +487,7 @@ function agrupaPorDia(reunioes, agora){
     else if(s==="FUTURA") g.futuras++;
     else if(s==="PERDIDA") g.perdidas++;
     else if(s==="PENDENTE") g.pendentes++;
+    else if(s==="CANCELADA") g.canceladas++;
   });
   return [...byDay.values()].sort((a,b)=>a.dia-b.dia);
 }
@@ -578,6 +582,7 @@ function render(dados){
         if(g.futuras) partes.push(`${g.futuras} agend.`);
         if(g.pendentes) partes.push(`${g.pendentes} a registrar`);
         if(g.perdidas) partes.push(`${g.perdidas} no-show`);
+        if(g.canceladas) partes.push(`${g.canceladas} cancel.`);
         const sub = partes.join(" · ") || "—";
         return `<div class="appt" style="--c:${cor}">
           <div class="time"><span class="ini">${g.total}</span><span class="fim">reun.</span></div>
@@ -596,6 +601,7 @@ function render(dados){
         if(s==="AGORA"){ cor="var(--now)"; tag="Agora"; cls="live"; }
         else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
         else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
+        else if(s==="CANCELADA"){ cor="var(--dim)"; tag="Cancelada"; cls="past cancel"; }
         else if(s==="PENDENTE"){ cor="var(--muted)"; tag="A registrar"; cls=""; }
         else { // FUTURA
           cor="var(--sched)";
