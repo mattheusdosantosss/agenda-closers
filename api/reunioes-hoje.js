@@ -323,7 +323,7 @@ function normalizaOutcome(v) {
   return "SCHEDULED"; // SCHEDULED, RESCHEDULED ou vazio
 }
 
-async function montarSegmento(token, ownerIds, segmento, janela) {
+async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   if (!ownerIds.length) return [];
   const [nomes, meetings] = await Promise.all([
     nomesDosOwners(token, ownerIds),
@@ -335,21 +335,40 @@ async function montarSegmento(token, ownerIds, segmento, janela) {
     meetings.map((m) => m.id).filter(Boolean)
   );
 
+  const dpo = (owner) => {
+    if (!diag) return null;
+    if (!diag[owner]) {
+      diag[owner] = {
+        nome: nomes.get(owner) || `Owner ${owner}`,
+        brutoDoHubSpot: 0, mantidas: 0, canceladas: 0,
+        tipoForaDaLista: 0, semData: 0,
+        tiposDescartados: {}, tiposMantidos: {},
+      };
+    }
+    return diag[owner];
+  };
+
   // agrupa por owner
   const porOwner = new Map();
   for (const m of meetings) {
     const p = m.properties ?? {};
-    const oc = normalizaOutcome(p.hs_meeting_outcome);
-    if (oc === "CANCELED") continue; // cancelada não conta como marcada
+    const owner = String(p.hubspot_owner_id ?? "");
+    const d = dpo(owner);
+    if (d) d.brutoDoHubSpot++;
     const tipo = (p.hs_activity_type ?? "").trim();
+    const oc = normalizaOutcome(p.hs_meeting_outcome);
+    if (oc === "CANCELED") { if (d) d.canceladas++; continue; } // cancelada não conta
     // No B2C, só entram os tipos da allowlist (mesma lista do relatório).
-    if (segmento === "B2C" && !tipoPermitidoB2C(tipo)) continue;
+    if (segmento === "B2C" && !tipoPermitidoB2C(tipo)) {
+      if (d) { d.tipoForaDaLista++; const k = tipo || "(sem tipo)"; d.tiposDescartados[k] = (d.tiposDescartados[k] || 0) + 1; }
+      continue;
+    }
     const ini = parseHsDate(p.hs_meeting_start_time);
-    if (!ini) continue; // sem início válido não dá pra posicionar na agenda
+    if (!ini) { if (d) d.semData++; continue; } // sem início válido
     const fim =
       parseHsDate(p.hs_meeting_end_time) || new Date(ini.getTime() + 45 * 60000);
-    const owner = String(p.hubspot_owner_id ?? "");
     if (!porOwner.has(owner)) porOwner.set(owner, []);
+    if (d) { d.mantidas++; const k = tipo || "(sem tipo)"; d.tiposMantidos[k] = (d.tiposMantidos[k] || 0) + 1; }
     const ct = contatos.get(String(m.id)) || { contato: "—", empresa: "—" };
     porOwner.get(owner).push({
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
@@ -405,11 +424,14 @@ export default async function handler(req, res) {
 
   try {
     const janela = janelaPara(range);
+    const diagB2C = debug ? {} : null;
     const [closersB2B, closersB2C] = await Promise.all([
       montarSegmento(token, b2b, "B2B", janela),
-      montarSegmento(token, b2c, "B2C", janela),
+      montarSegmento(token, b2c, "B2C", janela, diagB2C),
     ]);
-    res.status(200).json({ range, inicio: janela.inicio, fim: janela.fim, closers: [...closersB2B, ...closersB2C] });
+    const payload = { range, inicio: janela.inicio, fim: janela.fim, closers: [...closersB2B, ...closersB2C] };
+    if (debug) payload._diagB2C = diagB2C;
+    res.status(200).json(payload);
   } catch (e) {
     console.error("reunioes-hoje error:", e);
     const payload = { error: e?.message ?? "erro ao consultar o HubSpot" };
