@@ -25,15 +25,6 @@
   html,body{height:100%}
   body{font-family:var(--sans);background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;min-height:100vh}
 
-  /* portão de senha */
-  .gate{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
-  .gate form{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:30px;width:min(360px,92vw);text-align:center}
-  .gate h1{font-family:var(--num);font-weight:700;font-size:26px;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
-  .gate p{color:var(--muted);font-size:13px;margin-bottom:18px}
-  .gate input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:15px;font-family:var(--inter)}
-  .gate button{width:100%;margin-top:12px;padding:12px;border:none;border-radius:10px;background:var(--orange);color:#0b0b0e;font-weight:700;font-size:15px;cursor:pointer;font-family:var(--inter)}
-  .gate .erro{color:var(--miss);font-size:13px;margin-top:12px;min-height:16px}
-
   /* app */
   .app{max-width:1100px;margin:0 auto;padding:22px 26px 60px}
   header.top{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
@@ -66,19 +57,8 @@
 </head>
 <body>
 
-<!-- PORTÃO DE SENHA -->
-<div class="gate" id="gate">
-  <form id="gateForm">
-    <h1>Rastreio</h1>
-    <p>Área privada. Informe a senha.</p>
-    <input type="password" id="senha" autocomplete="current-password" placeholder="Senha" autofocus>
-    <button type="submit">Entrar</button>
-    <div class="erro" id="gateErro"></div>
-  </form>
-</div>
-
 <!-- APP -->
-<div class="app" id="app" hidden>
+<div class="app" id="app">
   <header class="top">
     <div>
       <h1>Rastreio de saídas</h1>
@@ -116,27 +96,6 @@ const SEG_LABEL = {B2B:"B2B", B2C:"B2C"};
 const fmtHora = iso => new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 const agoraHM = () => new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 const hojeStr = () => new Date().toLocaleDateString('pt-BR');
-
-/* ---------- portão ---------- */
-const gate = document.getElementById('gate');
-const app = document.getElementById('app');
-async function tentarEntrar(senha){
-  const r = await fetch('/api/rastreio', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({key: senha})
-  });
-  return r.ok;
-}
-document.getElementById('gateForm').addEventListener('submit', async e=>{
-  e.preventDefault();
-  const erro = document.getElementById('gateErro');
-  erro.textContent = '...';
-  const ok = await tentarEntrar(document.getElementById('senha').value).catch(()=>false);
-  if(ok){ sessionStorage.setItem('rastreio_ok','1'); abrirApp(); }
-  else { erro.textContent = 'Senha incorreta ou não configurada na Vercel.'; }
-});
-function abrirApp(){ gate.hidden = true; app.hidden = false; iniciar(); }
-if(sessionStorage.getItem('rastreio_ok')==='1'){ abrirApp(); }
 
 /* ---------- rastreio (localStorage) ---------- */
 const LS = {date:'rastreio_date', snap:'rastreio_snap', out:'rastreio_out', in:'rastreio_in'};
@@ -234,6 +193,9 @@ document.getElementById('btnLimpar').addEventListener('click', ()=>{
     render(Object.keys(load(LS.snap,{})).length, [], []);
   }
 });
+
+// abre direto (sem senha) — privacidade pela URL separada, não linkada
+iniciar();
 </script>
 </body>
 </html>
