@@ -375,6 +375,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
     if (d) { d.mantidas++; if (oc === "CANCELED") d.canceladas++; const k = tipo || "(sem tipo)"; d.tiposMantidos[k] = (d.tiposMantidos[k] || 0) + 1; }
     const ct = contatos.get(String(m.id)) || { contato: "—", empresa: "—" };
     porOwner.get(owner).push({
+      id: String(m.id),
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
       contato: ct.contato,
       empresa: segmento === "B2C" ? "—" : ct.empresa,
