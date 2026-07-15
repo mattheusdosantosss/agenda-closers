@@ -114,17 +114,17 @@
 
   /* ---------- KPIs ---------- */
   .kpis{
-    display:grid;grid-template-columns:repeat(5,1fr);gap:13px;
+    display:grid;grid-template-columns:repeat(7,1fr);gap:11px;
     padding:12px 30px;flex:0 0 auto;
   }
   .kpi{
     background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:11px 20px;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden;
+    padding:11px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;
     box-shadow:var(--shadow-sm);
   }
   .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
-  .kpi .big{font-family:var(--num);font-weight:700;font-size:54px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
-  .kpi .lbl{color:var(--muted);font-size:12px;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+  .kpi .big{font-family:var(--num);font-weight:700;font-size:46px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
+  .kpi .lbl{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
 
   /* ---------- GRID DE CLOSERS ---------- */
   .grid{
@@ -535,19 +535,24 @@ function render(dados){
   document.getElementById('brandSub').textContent = `Closers ${state.seg} · ${RANGE_LABEL[state.range]}`;
 
   // KPIs agregados do segmento
-  const tot = {agendadas:0, realizadas:0, agora:0, futuras:0, perdidas:0};
+  const tot = {agendadas:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0};
   const resumos = doSeg.map(c=>{
     const r = resumoCloser(c, agora);
-    tot.agendadas+=r.agendadas; tot.realizadas+=r.realizadas; tot.agora+=r.agora; tot.futuras+=r.futuras; tot.perdidas+=r.perdidas;
+    tot.agendadas+=r.agendadas; tot.realizadas+=r.realizadas; tot.agora+=r.agora; tot.futuras+=r.futuras;
+    tot.perdidas+=r.perdidas; tot.pendentes+=r.pendentes; tot.canceladas+=r.canceladas;
     return {c, r};
   });
 
+  // Agendadas (total) = Realizadas + Em andamento + Futuras + No-show + A registrar + Canceladas.
+  // Todos os baldes aparecem para a soma sempre fechar com o total.
   const kpiDefs = [
     {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--sched)"},
     {n:tot.realizadas, t:"Realizadas", c:"var(--done)"},
     {n:tot.agora, t:"Em andamento", c:"var(--now)"},
     {n:tot.futuras, t:"Futuras", c:"var(--next)"},
     {n:tot.perdidas, t:"No-show", c:"var(--miss)"},
+    {n:tot.pendentes, t:"A registrar", c:"var(--muted)"},
+    {n:tot.canceladas, t:"Canceladas", c:"var(--dim)"},
   ];
   const kpis = document.getElementById('kpis');
   kpis.innerHTML='';

@@ -439,7 +439,23 @@ export default async function handler(req, res) {
       montarSegmento(token, b2c, "B2C", janela, diagB2C),
     ]);
     const payload = { range, inicio: janela.inicio, fim: janela.fim, closers: [...closersB2B, ...closersB2C] };
-    if (debug) payload._diagB2C = diagB2C;
+    if (debug) {
+      payload._diagB2C = diagB2C;
+      // tally por status (mesma regra do front) p/ conferir que a soma = agendadas
+      const agoraMs = Date.now();
+      const t = { agendadas: 0, realizadas: 0, agora: 0, futuras: 0, perdidas: 0, aRegistrar: 0, canceladas: 0 };
+      for (const c of closersB2C) for (const m of c.reunioes) {
+        t.agendadas++;
+        const ini = new Date(m.inicio).getTime(), fim = new Date(m.fim).getTime();
+        if (m.outcome === "CANCELED") t.canceladas++;
+        else if (m.outcome === "COMPLETED") t.realizadas++;
+        else if (m.outcome === "NO_SHOW") t.perdidas++;
+        else if (agoraMs >= ini && agoraMs <= fim) t.agora++;
+        else if (agoraMs < ini) t.futuras++;
+        else t.aRegistrar++;
+      }
+      payload._resumoB2C = t;
+    }
     res.status(200).json(payload);
   } catch (e) {
     console.error("reunioes-hoje error:", e);
