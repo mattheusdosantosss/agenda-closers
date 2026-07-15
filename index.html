@@ -226,6 +226,39 @@
   .agenda.grade .appt .info .c{font-size:11.5px;margin-top:0;flex:1 1 auto;min-width:0}
   .agenda.grade .appt .tag{font-size:10px}
 
+  /* KPI clicável */
+  .kpi{cursor:pointer;transition:border-color .2s, transform .1s}
+  .kpi:hover{border-color:var(--c)}
+  .kpi:active{transform:scale(.99)}
+
+  /* ---------- MODAL (pop-up de reuniões por status) ---------- */
+  .modal{position:fixed;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:30px}
+  .modal[hidden]{display:none}
+  .modal-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(2px)}
+  .modal-box{
+    position:relative;z-index:1;width:min(820px,92vw);max-height:82vh;display:flex;flex-direction:column;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+  }
+  .modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .modal-title{font-family:var(--num);font-weight:700;font-size:22px;letter-spacing:.04em;text-transform:uppercase}
+  .modal-title b{color:var(--c)}
+  .modal-close{background:transparent;border:none;color:var(--muted);font-size:28px;line-height:1;cursor:pointer;padding:0 4px}
+  .modal-close:hover{color:var(--ink)}
+  .modal-list{overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .modal-empty{color:var(--muted);text-align:center;padding:28px;font-size:15px}
+  .mrow{
+    display:flex;align-items:center;gap:14px;padding:11px 14px;border-radius:11px;text-decoration:none;color:var(--ink);
+    background:rgba(0,0,0,.28);border:1px solid var(--line);border-left:5px solid var(--c);transition:background .15s, border-color .15s;
+  }
+  .mrow:hover{background:rgba(255,255,255,.06);border-color:var(--c)}
+  .mrow .mt{font-family:var(--inter);font-weight:700;font-size:18px;color:var(--c);font-variant-numeric:tabular-nums;flex:0 0 auto;min-width:52px;text-align:center;line-height:1.05}
+  .mrow .mt small{display:block;color:var(--muted);font-size:11px;font-weight:600}
+  .mrow .mc{flex:0 0 auto;width:170px;font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mrow .mi{flex:1 1 auto;min-width:0;color:var(--muted);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .mrow .mg{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);white-space:nowrap}
+  .mrow.cancel .mi{text-decoration:line-through}
+
   footer{position:fixed;right:14px;bottom:8px;color:var(--dim);font-size:10.5px;letter-spacing:.06em}
   footer b{color:var(--muted)}
 
@@ -269,6 +302,18 @@
 <main class="grid" id="grid"></main>
 
 <footer id="foot">Atualiza automaticamente a cada <b>30s</b> · dados de exemplo</footer>
+
+<!-- pop-up: reuniões de um status (aberto ao clicar num KPI) -->
+<div id="modal" class="modal" hidden>
+  <div class="modal-bg" data-close></div>
+  <div class="modal-box">
+    <div class="modal-head">
+      <div class="modal-title" id="modalTitle">—</div>
+      <button class="modal-close" id="modalClose" aria-label="Fechar">×</button>
+    </div>
+    <div class="modal-list" id="modalList"></div>
+  </div>
+</div>
 
 <script>
 /* ============================================================
@@ -445,6 +490,18 @@ function statusReuniao(m, agora){
   return "PENDENTE"; // já passou do horário e ninguém marcou o resultado
 }
 
+// cor + rótulo de cada status (usado no modal)
+function statusVisual(s){
+  switch(s){
+    case "AGORA":     return {cor:"var(--now)",  tag:"Em andamento"};
+    case "REALIZADA": return {cor:"var(--done)", tag:"Realizada"};
+    case "PERDIDA":   return {cor:"var(--miss)", tag:"No-show"};
+    case "CANCELADA": return {cor:"var(--dim)",  tag:"Cancelada"};
+    case "PENDENTE":  return {cor:"var(--muted)",tag:"A registrar"};
+    default:          return {cor:"var(--sched)",tag:"Agendada"}; // FUTURA
+  }
+}
+
 function resumoCloser(c, agora){
   const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0};
   let emAndamento=null, aSeguir=null;
@@ -546,19 +603,21 @@ function render(dados){
   // Agendadas (total) = Realizadas + Em andamento + Futuras + No-show + A registrar + Canceladas.
   // Todos os baldes aparecem para a soma sempre fechar com o total.
   const kpiDefs = [
-    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--sched)"},
-    {n:tot.realizadas, t:"Realizadas", c:"var(--done)"},
-    {n:tot.agora, t:"Em andamento", c:"var(--now)"},
-    {n:tot.futuras, t:"Futuras", c:"var(--next)"},
-    {n:tot.perdidas, t:"No-show", c:"var(--miss)"},
-    {n:tot.pendentes, t:"A registrar", c:"var(--muted)"},
-    {n:tot.canceladas, t:"Canceladas", c:"var(--dim)"},
+    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--sched)", k:"ALL"},
+    {n:tot.realizadas, t:"Realizadas", c:"var(--done)", k:"REALIZADA"},
+    {n:tot.agora, t:"Em andamento", c:"var(--now)", k:"AGORA"},
+    {n:tot.futuras, t:"Futuras", c:"var(--next)", k:"FUTURA"},
+    {n:tot.perdidas, t:"No-show", c:"var(--miss)", k:"PERDIDA"},
+    {n:tot.pendentes, t:"A registrar", c:"var(--muted)", k:"PENDENTE"},
+    {n:tot.canceladas, t:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
   const kpis = document.getElementById('kpis');
   kpis.innerHTML='';
   kpiDefs.forEach(k=>{
-    kpis.appendChild(el(`<div class="kpi" style="--c:${k.c}">
-      <div class="big">${k.n}</div><div class="lbl">${k.t}</div></div>`));
+    const card = el(`<div class="kpi" style="--c:${k.c}" title="Ver reuniões">
+      <div class="big">${k.n}</div><div class="lbl">${k.t}</div></div>`);
+    card.addEventListener('click', ()=> abrirModal(k.k, k.t, k.c));
+    kpis.appendChild(card);
   });
 
   // Cards — grade adaptativa ao número de closers do segmento
@@ -655,6 +714,51 @@ function render(dados){
     grid.appendChild(card);
   });
 }
+
+/* ============================================================
+   3b) MODAL — reuniões de um status (ao clicar num KPI)
+   ============================================================ */
+function abrirModal(key, titulo, cor){
+  const agora = new Date();
+  const doSeg = (cache||[]).filter(c => c.segmento === state.seg);
+  const itens = [];
+  doSeg.forEach(c => c.reunioes.forEach(m => {
+    const s = statusReuniao(m, agora);
+    if(key==='ALL' || s===key) itens.push({c, m, s});
+  }));
+  itens.sort((a,b)=> a.m.inicio - b.m.inicio);
+
+  const multiDia = state.range!=='hoje';
+  const lista = document.getElementById('modalList');
+  if(!itens.length){
+    lista.innerHTML = `<div class="modal-empty">Nenhuma reunião neste status.</div>`;
+  } else {
+    lista.innerHTML = itens.map(({c,m,s})=>{
+      const v = statusVisual(s);
+      const emp = (m.empresa||'').trim();
+      const info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato||m.titulo||'—');
+      const dia = multiDia ? `<small>${fmtDia(m.inicio)}</small>` : '';
+      const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
+      const cls = s==='CANCELADA' ? ' cancel' : '';
+      return `<a class="mrow${cls}" style="--c:${v.cor}"${href}>
+        <span class="mt">${fmtHora(m.inicio)}${dia}</span>
+        <span class="mc">${c.nome}</span>
+        <span class="mi">${info}</span>
+        <span class="mg">${v.tag}</span>
+      </a>`;
+    }).join('');
+  }
+  document.getElementById('modalTitle').innerHTML =
+    `${titulo} · <b>${itens.length}</b>`;
+  const modal = document.getElementById('modal');
+  modal.style.setProperty('--c', cor || 'var(--ink)');
+  modal.hidden = false;
+}
+function fecharModal(){ document.getElementById('modal').hidden = true; }
+document.querySelectorAll('#modal [data-close], #modalClose').forEach(elm=>{
+  elm.addEventListener('click', fecharModal);
+});
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') fecharModal(); });
 
 /* ============================================================
    4) RELÓGIO + CICLO DE ATUALIZAÇÃO
