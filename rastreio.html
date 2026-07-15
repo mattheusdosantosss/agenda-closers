@@ -44,6 +44,7 @@
     background:var(--panel);border:1px solid var(--line);border-left:5px solid var(--c);transition:background .15s,border-color .15s;
   }
   .row:hover{background:var(--panel-2);border-color:var(--c)}
+  .row.cancel .info{text-decoration:line-through}
   .row .h{font-family:var(--inter);font-weight:700;font-size:17px;color:var(--c);min-width:52px;text-align:center;font-variant-numeric:tabular-nums}
   .row .who{flex:0 0 auto;width:210px;min-width:0}
   .row .who .n{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -71,23 +72,21 @@
 
   <div class="bar">
     <span class="pill">Agora no dia: <b id="cAtual">–</b></span>
-    <span class="pill" style="border-color:rgba(255,90,90,.4)">Saíram hoje: <b id="cSaidas" style="color:var(--miss)">0</b></span>
-    <span class="pill" style="border-color:rgba(58,175,58,.35)">Entraram hoje: <b id="cEntradas" style="color:var(--in)">0</b></span>
+    <span class="pill">Vistas hoje: <b id="cVistas">–</b></span>
+    <span class="pill" style="border-color:rgba(255,90,90,.4)">Saíram (excluídas): <b id="cSaidas" style="color:var(--miss)">0</b></span>
     <button class="btn" id="btnAtualizar">Atualizar agora</button>
-    <button class="btn" id="btnLimpar">Limpar histórico</button>
   </div>
+
+  <div id="aviso" class="empty" style="border-color:var(--miss);color:var(--miss);display:none;margin-bottom:14px"></div>
 
   <h2 class="sec" style="color:var(--miss)">Saíram do dia <small id="sSaidas"></small></h2>
   <div class="list" id="listSaidas"></div>
 
-  <h2 class="sec" style="color:var(--in)">Entraram no dia <small id="sEntradas"></small></h2>
-  <div class="list" id="listEntradas"></div>
-
   <div class="nota">
-    <b>Como funciona:</b> esta página guarda um retrato das reuniões do dia <b>neste navegador</b> e, a cada
-    atualização, registra o que <b>desapareceu</b> (excluída no HubSpot ou reagendada para outro dia) e o que
-    <b>entrou</b>. A detecção em tempo real acontece enquanto a página fica aberta; ao reabrir, ela também compara
-    com o último retrato salvo. O histórico é reiniciado a cada novo dia.
+    <b>Como funciona:</b> o servidor registra sozinho tudo que existiu hoje (o painel da TV consulta a API a cada
+    30s, então o histórico se mantém <b>sem ninguém precisar deixar página aberta</b>). Esta tela apenas <b>lê</b>
+    esse histórico e mostra as reuniões que <b>sumiram</b> do dia — excluídas no HubSpot ou reagendadas para outra
+    data — com o horário em que foram <b>vistas por último</b>. O histórico reinicia a cada novo dia.
   </div>
 </div>
 
@@ -95,89 +94,68 @@
 const SEG_LABEL = {B2B:"B2B", B2C:"B2C"};
 const fmtHora = iso => new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
 const agoraHM = () => new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-const hojeStr = () => new Date().toLocaleDateString('pt-BR');
 
-/* ---------- rastreio (localStorage) ---------- */
-const LS = {date:'rastreio_date', snap:'rastreio_snap', out:'rastreio_out', in:'rastreio_in'};
-const load = (k,def)=>{ try{ return JSON.parse(localStorage.getItem(k)) ?? def; }catch{ return def; } };
-const save = (k,v)=> localStorage.setItem(k, JSON.stringify(v));
-
-function resetSeVirouODia(){
-  if(localStorage.getItem(LS.date) !== hojeStr()){
-    localStorage.setItem(LS.date, hojeStr());
-    save(LS.snap,{}); save(LS.out,[]); save(LS.in,[]);
-  }
-}
-
+/* Lê o estado atual (/api/reunioes-hoje) e o histórico do dia (/api/historico,
+   gravado no servidor) e mostra as reuniões que sumiram = vistas - atuais. */
 async function ciclo(){
-  resetSeVirouODia();
-  let raw;
+  const av = document.getElementById('aviso');
+  let atual, hist;
   try{
-    const r = await fetch('/api/reunioes-hoje?range=hoje', {cache:'no-store'});
-    raw = await r.json();
+    [atual, hist] = await Promise.all([
+      fetch('/api/reunioes-hoje?range=hoje', {cache:'no-store'}).then(r=>r.json()),
+      fetch('/api/historico', {cache:'no-store'}).then(r=>r.json()),
+    ]);
   }catch(e){ document.getElementById('atualizado').textContent = 'falha ao atualizar'; return; }
 
-  const closers = Array.isArray(raw) ? raw : (raw.closers || []);
-  const cur = {};
-  closers.forEach(c => (c.reunioes||[]).forEach(m => {
-    if(!m.id) return;
-    cur[m.id] = {id:m.id, seg:c.segmento, closer:c.nome, contato:m.contato, empresa:m.empresa, tipo:m.tipo, link:m.link, inicio:m.inicio, outcome:m.outcome};
-  }));
+  // ids que existem AGORA
+  const closers = Array.isArray(atual) ? atual : (atual.closers || []);
+  const atuais = new Set();
+  closers.forEach(c => (c.reunioes||[]).forEach(m => m.id && atuais.add(m.id)));
 
-  const prev = load(LS.snap,{});
-  const primeiraVez = Object.keys(prev).length===0;
-  const out = load(LS.out,[]);
-  const inn = load(LS.in,[]);
-  const jaOut = new Set(out.map(x=>x.id));
-  const jaIn = new Set(inn.map(x=>x.id));
-
-  // saíram: estavam no retrato anterior e não estão mais
-  Object.keys(prev).forEach(id=>{
-    if(!cur[id] && !jaOut.has(id)){
-      out.unshift({...prev[id], saiuEm: agoraHM()});
-    }
-  });
-  // entraram: estão agora e não estavam (ignora a 1ª carga p/ não listar tudo)
-  if(!primeiraVez){
-    Object.keys(cur).forEach(id=>{
-      if(!prev[id] && !jaIn.has(id)){
-        inn.unshift({...cur[id], entrouEm: agoraHM()});
-      }
-    });
+  // armazenamento não configurado -> avisa e para
+  if(hist && hist.kv === false){
+    av.style.display = 'block';
+    av.textContent = 'Armazenamento (Vercel KV) não configurado — o histórico de exclusões ainda não está sendo gravado. Crie um KV na Vercel e faça redeploy.';
+    render(atuais.size, 0, []);
+    document.getElementById('atualizado').textContent = 'atualizado ' + agoraHM();
+    return;
   }
+  av.style.display = 'none';
 
-  save(LS.snap, cur); save(LS.out, out); save(LS.in, inn);
-  render(Object.keys(cur).length, out, inn);
+  const visto = (hist && hist.visto) || {};
+  // saíram = estavam no histórico e não estão mais no estado atual
+  const saidas = Object.entries(visto)
+    .filter(([id]) => !atuais.has(id))
+    .map(([id, x]) => ({...x, id}))
+    .sort((a,b)=> new Date(b.lastSeen) - new Date(a.lastSeen));
+
+  render(atuais.size, Object.keys(visto).length, saidas);
   document.getElementById('atualizado').textContent = 'atualizado ' + agoraHM();
 }
 
-function linha(x, quando, quandoLabel, cor){
+function linha(x){
   const emp = (x.empresa||'').trim();
   const info = (emp && emp!=='—') ? `${x.contato} · ${emp}` : (x.contato || x.tipo || '—');
   const href = x.link ? ` href="${x.link}" target="_blank" rel="noopener"` : '';
-  return `<a class="row" style="--c:${cor}"${href}>
+  const visto = x.lastSeen ? fmtHora(x.lastSeen) : '—';
+  return `<a class="row cancel" style="--c:var(--miss)"${href}>
     <span class="h">${fmtHora(x.inicio)}</span>
-    <span class="who"><div class="n">${x.closer}</div><div class="s">${SEG_LABEL[x.seg]||x.seg} · ${x.tipo||''}</div></span>
+    <span class="who"><div class="n">${x.closer||'—'}</div><div class="s">${SEG_LABEL[x.seg]||x.seg||''} · ${x.tipo||''}</div></span>
     <span class="info">${info}</span>
-    <span class="when">${quandoLabel} ${quando}</span>
+    <span class="when">visto ~${visto}</span>
   </a>`;
 }
 
-function render(nAtual, out, inn){
+function render(nAtual, nVistas, saidas){
   document.getElementById('hoje').textContent =
     new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('cAtual').textContent = nAtual;
-  document.getElementById('cSaidas').textContent = out.length;
-  document.getElementById('cEntradas').textContent = inn.length;
-  document.getElementById('sSaidas').textContent = out.length ? `(${out.length})` : '';
-  document.getElementById('sEntradas').textContent = inn.length ? `(${inn.length})` : '';
-
-  document.getElementById('listSaidas').innerHTML = out.length
-    ? out.map(x=>linha(x, x.saiuEm, 'saiu ~', 'var(--miss)')).join('')
-    : `<div class="empty">Nenhuma reunião saiu do dia até agora.</div>`;
-  document.getElementById('listEntradas').innerHTML = inn.length
-    ? inn.map(x=>linha(x, x.entrouEm, 'entrou ~', 'var(--in)')).join('')
-    : `<div class="empty">Nenhuma reunião nova entrou desde que você abriu.</div>`;
+  document.getElementById('cVistas').textContent = nVistas;
+  document.getElementById('cSaidas').textContent = saidas.length;
+  document.getElementById('sSaidas').textContent = saidas.length ? `(${saidas.length})` : '';
+  document.getElementById('listSaidas').innerHTML = saidas.length
+    ? saidas.map(linha).join('')
+    : `<div class="empty">Nenhuma reunião saiu/foi excluída do dia até agora.</div>`;
 }
 
 let timer=null;
@@ -187,12 +165,6 @@ function iniciar(){
   timer = setInterval(ciclo, 30000);
 }
 document.getElementById('btnAtualizar').addEventListener('click', ciclo);
-document.getElementById('btnLimpar').addEventListener('click', ()=>{
-  if(confirm('Limpar o histórico de saídas/entradas de hoje?')){
-    save(LS.out,[]); save(LS.in,[]);
-    render(Object.keys(load(LS.snap,{})).length, [], []);
-  }
-});
 
 // abre direto (sem senha) — privacidade pela URL separada, não linkada
 iniciar();

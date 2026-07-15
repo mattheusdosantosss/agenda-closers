@@ -16,6 +16,8 @@
 // crm.objects.contacts.read.
 // ---------------------------------------------------------------------------
 
+import { kvReady, kvGetJSON, kvSetJSON, dataBRT } from "./_kv.js";
+
 const BASE = "https://api.hubapi.com";
 
 // Cores de marca PSA em rodízio para os avatares dos closers.
@@ -457,6 +459,33 @@ export default async function handler(req, res) {
       }
       payload._resumoB2C = t;
     }
+
+    // Histórico do dia: registra tudo que foi visto hoje (piggyback no tráfego
+    // da TV, que bate aqui a cada 30s). Reuniões que somem depois = excluídas/
+    // reagendadas. Best-effort: se o KV falhar, o painel segue normal.
+    if (range === "hoje" && kvReady()) {
+      try {
+        const dia = dataBRT();
+        const key = `visto:${dia}`;
+        const store = (await kvGetJSON(key)) || {};
+        const nowIso = new Date().toISOString();
+        for (const c of payload.closers) {
+          for (const m of c.reunioes) {
+            if (!m.id) continue;
+            const prev = store[m.id];
+            store[m.id] = {
+              seg: c.segmento, closer: c.nome, contato: m.contato, empresa: m.empresa,
+              tipo: m.tipo, link: m.link, inicio: m.inicio, outcome: m.outcome,
+              firstSeen: prev?.firstSeen || nowIso, lastSeen: nowIso,
+            };
+          }
+        }
+        await kvSetJSON(key, store, 60 * 60 * 48); // guarda 48h
+      } catch (e) {
+        console.error("kv visto error:", e?.message);
+      }
+    }
+
     res.status(200).json(payload);
   } catch (e) {
     console.error("reunioes-hoje error:", e);
