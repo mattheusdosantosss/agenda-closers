@@ -410,6 +410,52 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   });
 }
 
+// Captura de ALTERAÇÕES: varre uma janela ampla (ontem .. +30 dias) e compara
+// a "assinatura" de cada reunião (início, tipo, dono, título) com a última vez.
+// Registra reagendamentos e outras mudanças no KV ('alteracoes'). Não mexe em
+// status/outcome (isso já é métrica do painel).
+async function capturarAlteracoes(token, ownerIds) {
+  const brt = new Date(Date.now() + BRT_OFFSET_MIN * 60000);
+  const hoje0 = Date.UTC(brt.getUTCFullYear(), brt.getUTCMonth(), brt.getUTCDate(), 0, 0, 0, 0) - BRT_OFFSET_MIN * 60000;
+  const janela = { inicio: hoje0 - DIA_MS, fim: hoje0 + 31 * DIA_MS - 1 };
+
+  const [raw, nomes] = await Promise.all([
+    buscarMeetings(token, ownerIds, janela),
+    nomesDosOwners(token, ownerIds),
+  ]);
+  const nomeOwner = (o) => nomes.get(String(o)) || `Owner ${o}`;
+
+  const sigsOld = (await kvGetJSON("sigs")) || {};
+  let eventos = (await kvGetJSON("alteracoes")) || [];
+  const sigs = {};
+  const quando = new Date().toISOString();
+
+  for (const m of raw) {
+    const id = String(m.id);
+    const p = m.properties ?? {};
+    const ini = parseHsDate(p.hs_meeting_start_time);
+    if (!ini) continue;
+    const sig = {
+      inicio: ini.toISOString(),
+      tipo: (p.hs_activity_type ?? "").trim(),
+      owner: String(p.hubspot_owner_id ?? ""),
+      titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
+    };
+    sigs[id] = sig;
+    const old = sigsOld[id];
+    if (!old) continue; // 1ª vez que vemos: só registra a assinatura
+    const base = { id, quando, closer: nomeOwner(sig.owner), titulo: sig.titulo, link: linkReuniao(id) };
+    if (old.inicio !== sig.inicio) eventos.unshift({ ...base, kind: "reagendada", de: old.inicio, para: sig.inicio });
+    if ((old.tipo || "") !== sig.tipo) eventos.unshift({ ...base, kind: "tipo", de: old.tipo || "—", para: sig.tipo || "—" });
+    if ((old.owner || "") !== sig.owner) eventos.unshift({ ...base, kind: "reatribuida", de: nomeOwner(old.owner), para: nomeOwner(sig.owner) });
+    if ((old.titulo || "") !== sig.titulo) eventos.unshift({ ...base, kind: "renomeada", de: old.titulo || "—", para: sig.titulo || "—" });
+  }
+
+  eventos = eventos.slice(0, 300); // guarda as 300 mais recentes
+  await kvSetJSON("sigs", sigs, 60 * 60 * 72);
+  await kvSetJSON("alteracoes", eventos, 60 * 60 * 72);
+}
+
 export default async function handler(req, res) {
   const token = process.env.HUBSPOT_TOKEN;
   if (!token) {
@@ -486,6 +532,18 @@ export default async function handler(req, res) {
         await kvSetJSON(key, store, 60 * 60 * 48); // guarda 48h
       } catch (e) {
         console.error("kv visto error:", e?.message);
+      }
+
+      // Captura de alterações (reagendamentos etc.) — no máx a cada 5 min,
+      // usando um "lock" simples no KV para não rodar em toda requisição.
+      try {
+        const meta = (await kvGetJSON("snapmeta")) || {};
+        if (!meta.lastRun || Date.now() - meta.lastRun > 5 * 60 * 1000) {
+          await kvSetJSON("snapmeta", { lastRun: Date.now() }, 60 * 60 * 72);
+          await capturarAlteracoes(token, [...b2b, ...b2c]);
+        }
+      } catch (e) {
+        console.error("captura alteracoes:", e?.message);
       }
     }
 

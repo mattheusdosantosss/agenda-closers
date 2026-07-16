@@ -9,14 +9,17 @@ import { kvReady, kvGetJSON, dataBRT } from "./_kv.js";
 export default async function handler(req, res) {
   res.setHeader("Cache-Control", "no-store");
   if (!kvReady()) {
-    res.status(200).json({ kv: false, dia: dataBRT(), visto: {} });
+    res.status(200).json({ kv: false, dia: dataBRT(), visto: {}, alteracoes: [] });
     return;
   }
   try {
     const dia = dataBRT();
-    const visto = (await kvGetJSON(`visto:${dia}`)) || {};
-    res.status(200).json({ kv: true, dia, visto });
+    const [visto, alteracoes] = await Promise.all([
+      kvGetJSON(`visto:${dia}`),
+      kvGetJSON("alteracoes"),
+    ]);
+    res.status(200).json({ kv: true, dia, visto: visto || {}, alteracoes: alteracoes || [] });
   } catch (e) {
-    res.status(500).json({ error: e?.message ?? "erro ao ler histórico", visto: {} });
+    res.status(500).json({ error: e?.message ?? "erro ao ler histórico", visto: {}, alteracoes: [] });
   }
 }

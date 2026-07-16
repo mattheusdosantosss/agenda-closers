@@ -73,20 +73,25 @@
   <div class="bar">
     <span class="pill">Agora no dia: <b id="cAtual">–</b></span>
     <span class="pill">Vistas hoje: <b id="cVistas">–</b></span>
+    <span class="pill" style="border-color:rgba(255,106,26,.4)">Alterações: <b id="cAlt" style="color:var(--orange)">0</b></span>
     <span class="pill" style="border-color:rgba(255,90,90,.4)">Saíram (excluídas): <b id="cSaidas" style="color:var(--miss)">0</b></span>
     <button class="btn" id="btnAtualizar">Atualizar agora</button>
   </div>
 
   <div id="aviso" class="empty" style="border-color:var(--miss);color:var(--miss);display:none;margin-bottom:14px"></div>
 
+  <h2 class="sec" style="color:var(--orange)">Alterações (reagendamentos, tipo, dono, título) <small id="sAlt"></small></h2>
+  <div class="list" id="listAlt"></div>
+
   <h2 class="sec" style="color:var(--miss)">Saíram do dia <small id="sSaidas"></small></h2>
   <div class="list" id="listSaidas"></div>
 
   <div class="nota">
-    <b>Como funciona:</b> o servidor registra sozinho tudo que existiu hoje (o painel da TV consulta a API a cada
-    30s, então o histórico se mantém <b>sem ninguém precisar deixar página aberta</b>). Esta tela apenas <b>lê</b>
-    esse histórico e mostra as reuniões que <b>sumiram</b> do dia — excluídas no HubSpot ou reagendadas para outra
-    data — com o horário em que foram <b>vistas por último</b>. O histórico reinicia a cada novo dia.
+    <b>Como funciona:</b> o servidor registra sozinho o estado das reuniões (o painel da TV consulta a API a cada
+    30s, então o histórico se mantém <b>sem ninguém precisar deixar página aberta</b>). Esta tela mostra:
+    <b>Alterações</b> — reagendamentos (de/para data e hora), mudança de tipo, de dono ou de título, detectadas numa
+    janela de ontem até +30 dias; e <b>Saíram do dia</b> — reuniões que existiam hoje e sumiram (excluídas no
+    HubSpot). Não repete o que já está no painel (status/realizadas/no-show). As alterações são varridas a cada ~5 min.
   </div>
 </div>
 
@@ -115,8 +120,8 @@ async function ciclo(){
   // armazenamento não configurado -> avisa e para
   if(hist && hist.kv === false){
     av.style.display = 'block';
-    av.textContent = 'Armazenamento (Vercel KV) não configurado — o histórico de exclusões ainda não está sendo gravado. Crie um KV na Vercel e faça redeploy.';
-    render(atuais.size, 0, []);
+    av.textContent = 'Armazenamento (Vercel KV) não configurado — o histórico ainda não está sendo gravado. Crie um KV na Vercel e faça redeploy.';
+    render(atuais.size, 0, [], []);
     document.getElementById('atualizado').textContent = 'atualizado ' + agoraHM();
     return;
   }
@@ -129,8 +134,30 @@ async function ciclo(){
     .map(([id, x]) => ({...x, id}))
     .sort((a,b)=> new Date(b.lastSeen) - new Date(a.lastSeen));
 
-  render(atuais.size, Object.keys(visto).length, saidas);
+  const alteracoes = (hist && hist.alteracoes) || [];
+  render(atuais.size, Object.keys(visto).length, saidas, alteracoes);
   document.getElementById('atualizado').textContent = 'atualizado ' + agoraHM();
+}
+
+const fmtDataHora = iso => new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+const KIND = {
+  reagendada:{lbl:'Reagendada', data:true},
+  tipo:{lbl:'Tipo alterado'},
+  reatribuida:{lbl:'Reatribuída'},
+  renomeada:{lbl:'Renomeada'},
+};
+function eventoLinha(ev){
+  const k = KIND[ev.kind] || {lbl:'Alteração'};
+  const de = k.data ? fmtDataHora(ev.de) : (ev.de||'—');
+  const para = k.data ? fmtDataHora(ev.para) : (ev.para||'—');
+  const href = ev.link ? ` href="${ev.link}" target="_blank" rel="noopener"` : '';
+  const quando = ev.quando ? fmtHora(ev.quando) : '';
+  return `<a class="row" style="--c:var(--orange)"${href}>
+    <span class="h" style="min-width:104px;font-size:12.5px;letter-spacing:.04em;text-transform:uppercase">${k.lbl}</span>
+    <span class="who"><div class="n">${ev.closer||'—'}</div><div class="s">${ev.titulo||''}</div></span>
+    <span class="info"><b style="color:var(--muted)">${de}</b> → <b style="color:var(--ink)">${para}</b></span>
+    <span class="when">detec. ~${quando}</span>
+  </a>`;
 }
 
 function linha(x){
@@ -146,13 +173,20 @@ function linha(x){
   </a>`;
 }
 
-function render(nAtual, nVistas, saidas){
+function render(nAtual, nVistas, saidas, alteracoes){
+  alteracoes = alteracoes || [];
   document.getElementById('hoje').textContent =
     new Date().toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
   document.getElementById('cAtual').textContent = nAtual;
   document.getElementById('cVistas').textContent = nVistas;
+  document.getElementById('cAlt').textContent = alteracoes.length;
   document.getElementById('cSaidas').textContent = saidas.length;
+  document.getElementById('sAlt').textContent = alteracoes.length ? `(${alteracoes.length})` : '';
   document.getElementById('sSaidas').textContent = saidas.length ? `(${saidas.length})` : '';
+
+  document.getElementById('listAlt').innerHTML = alteracoes.length
+    ? alteracoes.map(eventoLinha).join('')
+    : `<div class="empty">Nenhuma alteração registrada ainda (reagendamentos aparecem aqui quando ocorrerem).</div>`;
   document.getElementById('listSaidas').innerHTML = saidas.length
     ? saidas.map(linha).join('')
     : `<div class="empty">Nenhuma reunião saiu/foi excluída do dia até agora.</div>`;
