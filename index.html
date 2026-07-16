@@ -680,7 +680,7 @@ function render(dados){
         const subLinha = (emp && emp!=='—') ? `<div class="c">${emp}</div>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="appt ${cls}" style="--c:${cor}"${href}>
-          <div class="time"><span class="ini">${fmtHora(m.inicio)}</span><span class="fim">${fmtHora(m.fim)}</span></div>
+          <div class="time"><span class="ini">${fmtHora(m.inicio)}</span></div>
           <div class="info"><div class="t">${nomeLinha}</div>${subLinha}</div>
           <div class="tag">${tag}</div>
         </a>`;
