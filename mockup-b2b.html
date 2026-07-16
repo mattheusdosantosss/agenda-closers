@@ -41,11 +41,15 @@
   .flag{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;text-align:right}
   .flag b{color:var(--sched)}
 
-  /* faixa sutil de métricas agregadas (todos os squads) */
-  .resumo{display:flex;align-items:center;gap:20px;flex:1 1 auto;justify-content:center}
-  .resumo .rm{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
-  .resumo .rm b{font-family:var(--num);font-weight:700;font-size:22px;line-height:1;color:var(--c);font-variant-numeric:tabular-nums}
-  .resumo .rm span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  /* métricas agregadas (todos os squads) — mini-chips com barra de cor */
+  .resumo{display:flex;align-items:stretch;gap:9px;flex:1 1 auto;justify-content:center}
+  .resumo .rm{
+    display:flex;align-items:center;gap:10px;white-space:nowrap;
+    background:var(--panel);border:1px solid var(--line);border-radius:11px;
+    padding:7px 14px 7px 12px;border-left:4px solid var(--c);position:relative;
+  }
+  .resumo .rm b{font-family:var(--num);font-weight:700;font-size:26px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
+  .resumo .rm span{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.15;white-space:normal;max-width:62px}
 
   /* ---------- grade de 5 squads ---------- */
   .grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 26px 18px;overflow:hidden}
