@@ -42,14 +42,14 @@
   .flag b{color:var(--sched)}
 
   /* métricas agregadas (todos os squads) — mini-chips com barra de cor */
-  .resumo{display:flex;align-items:stretch;gap:9px;flex:1 1 auto;justify-content:center}
+  .resumo{display:flex;align-items:stretch;gap:7px;flex:1 1 auto;min-width:0;justify-content:center;flex-wrap:wrap}
   .resumo .rm{
-    display:flex;align-items:center;gap:10px;white-space:nowrap;
-    background:var(--panel);border:1px solid var(--line);border-radius:11px;
-    padding:7px 14px 7px 12px;border-left:4px solid var(--c);position:relative;
+    display:flex;align-items:center;gap:7px;white-space:nowrap;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:5px 10px 5px 9px;border-left:4px solid var(--c);
   }
-  .resumo .rm b{font-family:var(--num);font-weight:700;font-size:26px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
-  .resumo .rm span{font-size:9.5px;letter-spacing:.11em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.15;white-space:normal;max-width:62px}
+  .resumo .rm b{font-family:var(--num);font-weight:700;font-size:21px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
+  .resumo .rm span{font-size:8.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.1;white-space:normal;max-width:56px}
 
   /* ---------- grade de 5 squads ---------- */
   .grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 26px 18px;overflow:hidden}
