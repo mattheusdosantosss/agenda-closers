@@ -259,6 +259,38 @@
   .mrow .mg{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c);white-space:nowrap}
   .mrow.cancel .mi{text-decoration:line-through}
 
+  /* ===== B2B em SQUADS ===== */
+  /* métricas como chips compactos clicáveis (substituem os cards no B2B) */
+  .kpis.chips{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-start}
+  .chip{display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px 6px 10px;border-left:4px solid var(--c);transition:border-color .15s}
+  .chip:hover{border-color:var(--c)}
+  .chip b{font-family:var(--num);font-weight:700;font-size:24px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
+  .chip span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.1;white-space:normal;max-width:60px}
+
+  /* grade de squads */
+  .grid.squads{grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:minmax(0,1fr)}
+  .squad{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .squad-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line)}
+  .squad-h .nome{font-family:var(--num);font-weight:700;font-size:23px;letter-spacing:.02em;line-height:1}
+  .squad-h .tag{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);background:rgba(255,106,26,.14);padding:4px 9px;border-radius:999px}
+  .pessoa{display:flex;flex-direction:column;min-height:0;flex:1 1 0;padding:8px 11px;border-bottom:1px solid var(--line);overflow:hidden}
+  .pessoa:last-child{border-bottom:none}
+  .pessoa.lider{background:rgba(255,106,26,.06)}
+  .p-h{display:flex;align-items:center;gap:7px;margin-bottom:6px}
+  .p-nome{font-family:var(--inter);font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .p-lider{font-family:var(--inter);font-size:8.5px;font-weight:700;letter-spacing:.1em;color:var(--orange);background:rgba(255,106,26,.16);padding:2px 6px;border-radius:999px;flex:0 0 auto}
+  .p-cnt{margin-left:auto;display:flex;gap:8px;font-family:var(--inter);font-size:10.5px;color:var(--muted);flex:0 0 auto}
+  .p-cnt b{font-weight:700}
+  .ag{display:flex;flex-direction:column;gap:3px;overflow:hidden;min-height:0}
+  .ap2{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:7px;background:rgba(0,0,0,.28);border-left:3px solid var(--c);min-width:0;flex:1 1 0;overflow:hidden;text-decoration:none;color:var(--ink);transition:background .15s}
+  a.ap2[href]:hover{background:rgba(255,255,255,.06)}
+  .ap2 .t{font-family:var(--inter);font-weight:700;font-size:13px;color:var(--c);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .ap2 .c{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+  .ap2 .g{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c);white-space:nowrap;flex:0 0 auto}
+  .ap2.cancel .c{text-decoration:line-through;opacity:.7}
+  .ag .vazio{color:var(--dim);font-size:11px;padding:2px}
+
   footer{position:fixed;right:14px;bottom:8px;color:var(--dim);font-size:10.5px;letter-spacing:.06em}
   footer b{color:var(--muted)}
 
@@ -389,56 +421,29 @@ function gerarDadosDemo(){
     const fim = new Date(ini.getTime() + durMin*60000);
     return {inicio:ini, fim:fim};
   };
-  const b2b = [
-    { nome:"Marina Alves", iniciais:"MA", cor:"#5aa9ff", reunioes:[
-      {titulo:"Demonstração da plataforma", contato:"Rafael Souza", empresa:"NexTech", ...h(-200), outcome:"COMPLETED"},
-      {titulo:"Alinhamento de proposta", contato:"Bianca Lima", empresa:"Vetor Log", ...h(-120), outcome:"COMPLETED"},
-      {titulo:"Fechamento anual", contato:"Diego Prado", empresa:"Casa Prado", ...h(-10, 50), outcome:"SCHEDULED"},
-      {titulo:"Follow-up comercial", contato:"Helena Dias", empresa:"Dias & Cia", ...h(70), outcome:"SCHEDULED"},
-      {titulo:"Diagnóstico inicial", contato:"Otávio Reis", empresa:"OR Group", ...h(160), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Bruno Carvalho", iniciais:"BC", cor:"#ff6a1a", reunioes:[
-      {titulo:"Kickoff comercial", contato:"Paula Nunes", empresa:"Nunes Imóveis", ...h(-260), outcome:"COMPLETED"},
-      {titulo:"Renovação de contrato", contato:"Sérgio Mota", empresa:"Mota Log", ...h(-40), outcome:"NO_SHOW"},
-      {titulo:"Apresentação de escopo", contato:"Lívia Torres", empresa:"Torres SA", ...h(35), outcome:"SCHEDULED"},
-      {titulo:"Negociação final", contato:"André Melo", empresa:"Melo Digital", ...h(120), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Camila Rocha", iniciais:"CR", cor:"#ffa24d", reunioes:[
-      {titulo:"Discovery call", contato:"Tiago Farias", empresa:"Farias Ltda", ...h(-150), outcome:"COMPLETED"},
-      {titulo:"Proposta comercial", contato:"Isabela Cruz", empresa:"Cruz Retail", ...h(-5, 40), outcome:"SCHEDULED"},
-      {titulo:"Revisão de contrato", contato:"Gustavo Pinto", empresa:"GP Consultoria", ...h(90), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Diego Santana", iniciais:"DS", cor:"#5aa9ff", reunioes:[
-      {titulo:"Onboarding comercial", contato:"Renata Vieira", empresa:"RV Studio", ...h(-90), outcome:"COMPLETED"},
-      {titulo:"Reunião estratégica", contato:"Fábio Moura", empresa:"Moura Corp", ...h(45), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Letícia Barros", iniciais:"LB", cor:"#ff6a1a", reunioes:[
-      {titulo:"Apresentação inicial", contato:"Marcelo Anjos", empresa:"Anjos & Filhos", ...h(-30, 25), outcome:"SCHEDULED"},
-      {titulo:"Fechamento", contato:"Aline Costa", empresa:"Costa Digital", ...h(15, 30), outcome:"SCHEDULED"},
-      {titulo:"Upsell", contato:"Rodrigo Sá", empresa:"Sá Ventures", ...h(80), outcome:"SCHEDULED"},
-      {titulo:"Follow-up", contato:"Vânia Luz", empresa:"Luz Home", ...h(180), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Pedro Nogueira", iniciais:"PN", cor:"#ffa24d", reunioes:[
-      {titulo:"Demo técnica", contato:"Clara Nunes", empresa:"CN Tech", ...h(-190), outcome:"COMPLETED"},
-      {titulo:"Alinhamento final", contato:"Ivo Ramos", empresa:"Ramos SA", ...h(-70), outcome:"COMPLETED"},
-      {titulo:"Negociação", contato:"Sofia Braga", empresa:"Braga Log", ...h(55), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Fernanda Dias", iniciais:"FD", cor:"#5aa9ff", reunioes:[
-      {titulo:"Discovery B2B", contato:"Márcio Leal", empresa:"Leal Industries", ...h(-140), outcome:"COMPLETED"},
-      {titulo:"Apresentação executiva", contato:"Beatriz Amaral", empresa:"Amaral Group", ...h(-8, 50), outcome:"SCHEDULED"},
-      {titulo:"Proposta comercial", contato:"Caio Fontes", empresa:"Fontes Tech", ...h(65), outcome:"SCHEDULED"},
-      {titulo:"Fechamento", contato:"Núbia Rocha", empresa:"NR Solutions", ...h(150), outcome:"SCHEDULED"},
-    ]},
-    { nome:"Thiago Melo", iniciais:"TM", cor:"#ff6a1a", reunioes:[
-      {titulo:"Reunião de qualificação", contato:"Larissa Pena", empresa:"Pena & Co", ...h(-260), outcome:"COMPLETED"},
-      {titulo:"Follow-up de proposta", contato:"Vitor Andrade", empresa:"Andrade SA", ...h(-180), outcome:"NO_SHOW"},
-      {titulo:"Demonstração comercial", contato:"Elisa Moraes", empresa:"Moraes Digital", ...h(-90), outcome:"COMPLETED"},
-      {titulo:"Reunião estratégica", contato:"Bruno Salles", empresa:"Salles Corp", ...h(-5, 45), outcome:"SCHEDULED"},
-      {titulo:"Negociação de contrato", contato:"Hugo Teixeira", empresa:"HT Ventures", ...h(50), outcome:"SCHEDULED"},
-      {titulo:"Apresentação de escopo", contato:"Carla Freitas", empresa:"Freitas SA", ...h(120), outcome:"SCHEDULED"},
-      {titulo:"Alinhamento pós-venda", contato:"Sandra Lopes", empresa:"Lopes Retail", ...h(190), outcome:"SCHEDULED"},
-    ]},
+  // B2B em squads (demo) — mesma estrutura da produção (líder + membros)
+  const SQ_DEMO = [
+    {nome:"Nico", lider:"Nicollas Lenuzza", membros:["Mateus Mariano","Catarina Borges"]},
+    {nome:"Diego", lider:"Diego Conceição", membros:["Rafael Alves","Gabriel Alves"]},
+    {nome:"Vince", lider:"Eduardo Vince", membros:["Rafael Teixeira"]},
+    {nome:"Leandro", lider:"Leandro Bengochea", membros:["João Backmann","Felippe Freitas"]},
+    {nome:"César", lider:"Cesar Filho", membros:["João Marins","Talita Cruz"]},
   ];
+  const CT=["Rafael Souza","Bianca Lima","Diego Prado","Helena Dias","Otávio Reis","Paula Nunes","Sérgio Mota","Lívia Torres","André Melo","Tiago Farias","Isabela Cruz","Gustavo Pinto"];
+  const OUT=["COMPLETED","NO_SHOW","SCHEDULED","SCHEDULED","COMPLETED"];
+  let gi=0; const b2b=[];
+  SQ_DEMO.forEach((s,si)=>{
+    [{nome:s.lider,lider:true},...s.membros.map(n=>({nome:n,lider:false}))].forEach(p=>{
+      const qtd = 2 + ((gi*3+1)%4);
+      const reun=[];
+      for(let k=0;k<qtd;k++){
+        const delta = -180 + ((gi*47 + k*70) % 420);
+        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
+      }
+      gi++;
+      b2b.push({nome:p.nome, iniciais:"", cor:"#5aa9ff", segmento:"B2B", squad:si, squadNome:s.nome, lider:p.lider, reunioes:reun});
+    });
+  });
 
   const b2c = [
     { nome:"Ana Beatriz", iniciais:"AB", cor:"#ff6a1a", reunioes:[
@@ -604,30 +609,44 @@ function render(dados){
   // Agendadas (total) = Realizadas + Em andamento + Futuras + No-show + A registrar + Canceladas.
   // Todos os baldes aparecem para a soma sempre fechar com o total.
   const kpiDefs = [
-    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, c:"var(--sched)", k:"ALL"},
-    {n:tot.realizadas, t:"Realizadas", c:"var(--done)", k:"REALIZADA"},
-    {n:tot.agora, t:"Em andamento", c:"var(--now)", k:"AGORA"},
-    {n:tot.futuras, t:"Futuras", c:"var(--next)", k:"FUTURA"},
-    {n:tot.perdidas, t:"No-show", c:"var(--miss)", k:"PERDIDA"},
-    {n:tot.pendentes, t:"A registrar", c:"var(--muted)", k:"PENDENTE"},
-    {n:tot.canceladas, t:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
+    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, s:"Agendadas", c:"var(--sched)", k:"ALL"},
+    {n:tot.realizadas, t:"Realizadas", s:"Realizadas", c:"var(--done)", k:"REALIZADA"},
+    {n:tot.agora, t:"Em andamento", s:"Em andamento", c:"var(--now)", k:"AGORA"},
+    {n:tot.futuras, t:"Futuras", s:"Futuras", c:"var(--next)", k:"FUTURA"},
+    {n:tot.perdidas, t:"No-show", s:"No-show", c:"var(--miss)", k:"PERDIDA"},
+    {n:tot.pendentes, t:"A registrar", s:"A registrar", c:"var(--muted)", k:"PENDENTE"},
+    {n:tot.canceladas, t:"Canceladas", s:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
+  const chips = state.seg === 'B2B'; // B2B usa chips compactos; B2C usa cards
   const kpis = document.getElementById('kpis');
+  kpis.className = chips ? 'kpis chips' : 'kpis';
   kpis.innerHTML='';
   kpiDefs.forEach(k=>{
-    const card = el(`<div class="kpi" style="--c:${k.c}" title="Ver reuniões">
-      <div class="big">${k.n}</div><div class="lbl">${k.t}</div></div>`);
-    card.addEventListener('click', ()=> abrirModal(k.k, k.t, k.c));
-    kpis.appendChild(card);
+    const node = chips
+      ? el(`<div class="chip" style="--c:${k.c}" title="Ver reuniões"><b>${k.n}</b><span>${k.s}</span></div>`)
+      : el(`<div class="kpi" style="--c:${k.c}" title="Ver reuniões"><div class="big">${k.n}</div><div class="lbl">${k.t}</div></div>`);
+    node.addEventListener('click', ()=> abrirModal(k.k, k.t, k.c));
+    kpis.appendChild(node);
   });
 
-  // Cards — grade adaptativa ao número de closers do segmento
   const grid = document.getElementById('grid');
+  grid.innerHTML='';
+
+  // B2B: layout em squads (5 colunas, líder + membros). B2C: cards por closer.
+  if(state.seg === 'B2B'){
+    grid.className = 'grid squads';
+    grid.style.gridTemplateColumns = '';
+    grid.style.gridTemplateRows = '';
+    renderSquads(resumos, agora);
+    return;
+  }
+
+  // Cards — grade adaptativa ao número de closers do segmento
+  grid.className = 'grid';
   const cols = colsFor(resumos.length);
   const rows = Math.max(1, Math.ceil(resumos.length/cols));
   grid.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
   grid.style.gridTemplateRows = `repeat(${rows},minmax(0,1fr))`;
-  grid.innerHTML='';
   resumos.forEach(({c,r})=>{
     const emAndamento = !!r.emAndamento;
 
@@ -714,6 +733,48 @@ function render(dados){
     </div>`);
     grid.appendChild(card);
   });
+}
+
+/* ============================================================
+   3a) B2B EM SQUADS — 5 colunas (líder + membros)
+   ============================================================ */
+function renderSquads(resumos, agora){
+  const grid = document.getElementById('grid');
+  const porSquad = new Map();
+  resumos.forEach(x=>{
+    const si = (x.c.squad==null) ? 99 : x.c.squad;
+    if(!porSquad.has(si)) porSquad.set(si, []);
+    porSquad.get(si).push(x);
+  });
+  const ordenados = [...porSquad.entries()].sort((a,b)=>a[0]-b[0]);
+  grid.innerHTML = ordenados.map(([si, membros])=>{
+    membros.sort((a,b)=> (b.c.lider?1:0)-(a.c.lider?1:0)); // líder primeiro
+    const lider = membros.find(m=>m.c.lider) || membros[0];
+    const nomeSquad = lider?.c.squadNome || (lider?.c.nome || 'Squad').split(' ')[0];
+    return `<div class="squad">
+      <div class="squad-h"><span class="nome">${nomeSquad}</span><span class="tag">Squad</span></div>
+      ${membros.map(({c,r})=>pessoaBlock(c, r, agora)).join('')}
+    </div>`;
+  }).join('');
+}
+function pessoaBlock(c, r, agora){
+  const reun = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
+  const linhas = reun.length ? reun.map(m=>{
+    const s = statusReuniao(m, agora);
+    const v = statusVisual(s);
+    const emp = (m.empresa||'').trim();
+    const info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato || m.titulo || '—');
+    const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
+    const cls = s==='CANCELADA' ? 'ap2 cancel' : 'ap2';
+    return `<a class="${cls}" style="--c:${v.cor}"${href}><span class="t">${fmtHora(m.inicio)}</span><span class="c">${info}</span><span class="g">${v.tag}</span></a>`;
+  }).join('') : `<div class="vazio">Sem reuniões</div>`;
+  return `<div class="pessoa ${c.lider?'lider':''}">
+    <div class="p-h">
+      <span class="p-nome">${c.nome}</span>${c.lider?'<span class="p-lider">Líder</span>':''}
+      <span class="p-cnt"><span><b>${r.agendadas}</b> ag</span><span style="color:var(--done)"><b>${r.realizadas}</b> re</span><span style="color:var(--sched)"><b>${r.futuras}</b> fu</span></span>
+    </div>
+    <div class="ag">${linhas}</div>
+  </div>`;
 }
 
 /* ============================================================

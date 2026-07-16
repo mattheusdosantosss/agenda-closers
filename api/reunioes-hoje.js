@@ -23,18 +23,24 @@ const BASE = "https://api.hubapi.com";
 // Cores de marca PSA em rodízio para os avatares dos closers.
 const CORES = ["#ff6a1a", "#5aa9ff", "#ffa24d", "#46d17f"];
 
-// Closers por segmento (ownerId do HubSpot). Podem ser sobrescritos por
-// HUBSPOT_CLOSERS_B2B / HUBSPOT_CLOSERS_B2C sem mexer no código.
-// B2B resolvido em 2026-07-13 a partir da lista enviada pelo time.
-const DEFAULT_B2B = [
-  "80454586", // Rafael Azevedo Teixeira
-  "80651489", // Catarina Varoni Borges
-  "92704130", // Talita Santos Cruz
-  "80169395", // Lucas Rosa de Oliveira
-  "80454588", // João Gabriel Marins Pereira
-  "87159365", // João Lucas Backmann
-  "86859895", // Mateus Menezes Mariano
+// B2B em SQUADS (reestruturação 2026-07-16). Cada squad = líder + membros
+// (ownerId do HubSpot). Wagner (squad Vince) ainda não existe -> entra depois.
+const SQUADS_B2B = [
+  { nome: "Nico",    lider: "80454573", membros: ["86859895", "80651489"] },   // Nicollas: Mateus, Catarina
+  { nome: "Diego",   lider: "79760744", membros: ["92333469", "94316538"] },   // Diego: Rafael Alves, Gabriel Alves
+  { nome: "Vince",   lider: "80454576", membros: ["80454586"] },               // Eduardo Vince: Rafael Teixeira (+ Wagner futuramente)
+  { nome: "Leandro", lider: "80454585", membros: ["87159365", "94028856"] },   // Leandro: João Backmann, Felippe Freitas
+  { nome: "César",   lider: "80454584", membros: ["80454588", "92704130"] },   // Cesar: João Marins, Talita
 ];
+// ordem achatada (líder, depois membros de cada squad) — usada na busca.
+const DEFAULT_B2B = SQUADS_B2B.flatMap((s) => [s.lider, ...s.membros]);
+// mapa ownerId -> { squad: índice, nome, lider: bool } para agrupar no painel.
+const SQUAD_DE = {};
+SQUADS_B2B.forEach((s, i) => {
+  SQUAD_DE[s.lider] = { squad: i, nome: s.nome, lider: true };
+  s.membros.forEach((m) => (SQUAD_DE[m] = { squad: i, nome: s.nome, lider: false }));
+});
+
 // B2C resolvido em 2026-07-13 a partir da lista enviada pelo time.
 const DEFAULT_B2C = [
   "79760676", // Amanda de Oliveira
@@ -400,11 +406,16 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   // um card por closer (mesmo sem reunião hoje, para o time aparecer na TV)
   return ownerIds.map((id, i) => {
     const nome = nomes.get(String(id)) || `Owner ${id}`;
+    const sq = segmento === "B2B" ? SQUAD_DE[String(id)] : null;
     return {
+      ownerId: String(id),
       nome,
       iniciais: iniciaisDe(nome),
       cor: CORES[i % CORES.length],
       segmento,
+      squad: sq ? sq.squad : null, // índice do squad (só B2B)
+      squadNome: sq ? sq.nome : null,
+      lider: sq ? sq.lider : false,
       reunioes: porOwner.get(String(id)) || [],
     };
   });
