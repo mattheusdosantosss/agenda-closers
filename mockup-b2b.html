@@ -95,15 +95,10 @@
     <div><h1>Agenda de Reuniões</h1><div class="sub">B2B · Squads · ESBOÇO</div></div>
   </div>
   <div class="resumo" id="resumo"></div>
-  <div class="toggle">
-    <button id="btnA" class="active" onclick="setOpcao('A')">Opção A · por pessoa</button>
-    <button id="btnB" onclick="setOpcao('B')">Opção B · consolidado</button>
-  </div>
   <div class="flag">Mockup · <b>dados fictícios</b><br>não é produção</div>
 </header>
 
 <main class="grid" id="gridA"></main>
-<main class="grid hidden" id="gridB"></main>
 
 <footer>Esboço para validação · 5 squads (líder + 2)</footer>
 
@@ -172,33 +167,6 @@ function renderA(){
     </div>`).join('');
 }
 
-/* ---------- Opção B ---------- */
-function renderB(){
-  const g = document.getElementById('gridB');
-  g.innerHTML = DADOS.map(sq=>{
-    // agenda unificada do squad
-    const linhas=[];
-    sq.pessoas.forEach(p=>p.reunioes.forEach(m=>linhas.push({...m, quem:p.nome, lider:p.lider})));
-    linhas.sort((a,b)=>a.hora.localeCompare(b.hora));
-    const tot={ag:linhas.length,re:0,ag2:0,fu:0};
-    linhas.forEach(m=>{ if(m.status==='REALIZADA')tot.re++; else if(m.status==='AGORA')tot.ag2++; else if(m.status==='FUTURA')tot.fu++; });
-    return `<div class="squad">
-      <div class="squad-h"><span class="nome">${sq.lider}</span><span class="tag">Squad · 3</span></div>
-      <div class="squad-kpis">
-        <div class="k" style="--c:var(--sched)"><div class="n">${tot.ag}</div><div class="l">Agend.</div></div>
-        <div class="k" style="--c:var(--done)"><div class="n">${tot.re}</div><div class="l">Realiz.</div></div>
-        <div class="k" style="--c:var(--now)"><div class="n">${tot.ag2}</div><div class="l">Agora</div></div>
-        <div class="k" style="--c:var(--sched)"><div class="n">${tot.fu}</div><div class="l">Futuras</div></div>
-      </div>
-      <div class="squad-b-list">
-        ${linhas.map(m=>{const v=cont(m); const prim=m.quem.split(' ')[0];
-          return `<div class="bp" style="--c:${v.c}"><span class="t">${m.hora}</span><span class="quem ${m.lider?'lider':''}">${prim}</span><span class="c">${m.contato}</span><span class="g">${v.g}</span></div>`;
-        }).join('')}
-      </div>
-    </div>`;
-  }).join('');
-}
-
 /* faixa de métricas agregadas (soma de todos os squads) */
 function renderResumo(){
   const a={ag:0,re:0,ao:0,fu:0,no:0,ca:0};
@@ -222,14 +190,7 @@ function renderResumo(){
     defs.map(d=>`<span class="rm" style="--c:${d.c}"><b>${d.n}</b><span>${d.l}</span></span>`).join('');
 }
 
-function setOpcao(o){
-  document.getElementById('btnA').classList.toggle('active', o==='A');
-  document.getElementById('btnB').classList.toggle('active', o==='B');
-  document.getElementById('gridA').classList.toggle('hidden', o!=='A');
-  document.getElementById('gridB').classList.toggle('hidden', o!=='B');
-}
-
-renderResumo(); renderA(); renderB(); setOpcao('A');
+renderResumo(); renderA();
 </script>
 </body>
 </html>
