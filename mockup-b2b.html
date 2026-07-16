@@ -41,6 +41,12 @@
   .flag{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;text-align:right}
   .flag b{color:var(--sched)}
 
+  /* faixa sutil de métricas agregadas (todos os squads) */
+  .resumo{display:flex;align-items:center;gap:20px;flex:1 1 auto;justify-content:center}
+  .resumo .rm{display:flex;align-items:baseline;gap:6px;white-space:nowrap}
+  .resumo .rm b{font-family:var(--num);font-weight:700;font-size:22px;line-height:1;color:var(--c);font-variant-numeric:tabular-nums}
+  .resumo .rm span{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
   /* ---------- grade de 5 squads ---------- */
   .grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 26px 18px;overflow:hidden}
   .squad{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
@@ -88,6 +94,7 @@
     <span class="dot"></span>
     <div><h1>Agenda de Reuniões</h1><div class="sub">B2B · Squads · ESBOÇO</div></div>
   </div>
+  <div class="resumo" id="resumo"></div>
   <div class="toggle">
     <button id="btnA" class="active" onclick="setOpcao('A')">Opção A · por pessoa</button>
     <button id="btnB" onclick="setOpcao('B')">Opção B · consolidado</button>
@@ -192,6 +199,29 @@ function renderB(){
   }).join('');
 }
 
+/* faixa de métricas agregadas (soma de todos os squads) */
+function renderResumo(){
+  const a={ag:0,re:0,ao:0,fu:0,no:0,ca:0};
+  DADOS.forEach(sq=>sq.pessoas.forEach(p=>p.reunioes.forEach(m=>{
+    a.ag++;
+    if(m.status==='REALIZADA')a.re++;
+    else if(m.status==='AGORA')a.ao++;
+    else if(m.status==='FUTURA')a.fu++;
+    else if(m.status==='PERDIDA')a.no++;
+    else if(m.status==='CANCELADA')a.ca++;
+  })));
+  const defs=[
+    {n:a.ag,l:'Agendadas',c:'var(--sched)'},
+    {n:a.re,l:'Realizadas',c:'var(--done)'},
+    {n:a.ao,l:'Em andamento',c:'var(--now)'},
+    {n:a.fu,l:'Futuras',c:'var(--sched)'},
+    {n:a.no,l:'No-show',c:'var(--miss)'},
+    {n:a.ca,l:'Canceladas',c:'var(--dim)'},
+  ];
+  document.getElementById('resumo').innerHTML =
+    defs.map(d=>`<span class="rm" style="--c:${d.c}"><b>${d.n}</b><span>${d.l}</span></span>`).join('');
+}
+
 function setOpcao(o){
   document.getElementById('btnA').classList.toggle('active', o==='A');
   document.getElementById('btnB').classList.toggle('active', o==='B');
@@ -199,7 +229,7 @@ function setOpcao(o){
   document.getElementById('gridB').classList.toggle('hidden', o!=='B');
 }
 
-renderA(); renderB(); setOpcao('A');
+renderResumo(); renderA(); renderB(); setOpcao('A');
 </script>
 </body>
 </html>
