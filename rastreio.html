@@ -128,10 +128,25 @@ async function ciclo(){
   av.style.display = 'none';
 
   const visto = (hist && hist.visto) || {};
-  // saíram = estavam no histórico e não estão mais no estado atual
+  const sigs = (hist && hist.sigs) || {};
+  // saíram = estavam no histórico de hoje e não estão mais no estado atual.
+  // Motivo: se ainda existe nos sigs (janela ampla) em outra data -> reagendada;
+  // se sumiu de tudo -> excluída.
   const saidas = Object.entries(visto)
     .filter(([id]) => !atuais.has(id))
-    .map(([id, x]) => ({...x, id}))
+    .map(([id, x]) => {
+      const sig = sigs[id];
+      let motivo, cor, excluida=false;
+      if (sig && sig.inicio && new Date(sig.inicio).toDateString() !== new Date(x.inicio).toDateString()) {
+        motivo = 'reagendada → ' + new Date(sig.inicio).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}) + ' ' + fmtHora(sig.inicio);
+        cor = 'var(--orange)';
+      } else if (sig && sig.inicio) {
+        motivo = 'saiu do filtro'; cor = 'var(--dim)';
+      } else {
+        motivo = 'excluída'; cor = 'var(--miss)'; excluida = true;
+      }
+      return {...x, id, motivo, cor, excluida};
+    })
     .sort((a,b)=> new Date(b.lastSeen) - new Date(a.lastSeen));
 
   const alteracoes = (hist && hist.alteracoes) || [];
@@ -165,11 +180,13 @@ function linha(x){
   const info = (emp && emp!=='—') ? `${x.contato} · ${emp}` : (x.contato || x.tipo || '—');
   const href = x.link ? ` href="${x.link}" target="_blank" rel="noopener"` : '';
   const visto = x.lastSeen ? fmtHora(x.lastSeen) : '—';
-  return `<a class="row cancel" style="--c:var(--miss)"${href}>
+  const cls = x.excluida ? 'row cancel' : 'row';
+  const cor = x.cor || 'var(--miss)';
+  return `<a class="${cls}" style="--c:${cor}"${href}>
     <span class="h">${fmtHora(x.inicio)}</span>
     <span class="who"><div class="n">${x.closer||'—'}</div><div class="s">${SEG_LABEL[x.seg]||x.seg||''} · ${x.tipo||''}</div></span>
     <span class="info">${info}</span>
-    <span class="when">visto ~${visto}</span>
+    <span class="when"><b style="color:${cor}">${(x.motivo||'').toUpperCase()}</b> · visto ~${visto}</span>
   </a>`;
 }
 

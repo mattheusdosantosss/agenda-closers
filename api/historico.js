@@ -14,11 +14,12 @@ export default async function handler(req, res) {
   }
   try {
     const dia = dataBRT();
-    const [visto, alteracoes] = await Promise.all([
+    const [visto, alteracoes, sigs] = await Promise.all([
       kvGetJSON(`visto:${dia}`),
       kvGetJSON("alteracoes"),
+      kvGetJSON("sigs"), // assinatura atual (janela ampla) p/ saber onde a reunião está agora
     ]);
-    res.status(200).json({ kv: true, dia, visto: visto || {}, alteracoes: alteracoes || [] });
+    res.status(200).json({ kv: true, dia, visto: visto || {}, alteracoes: alteracoes || [], sigs: sigs || {} });
   } catch (e) {
     res.status(500).json({ error: e?.message ?? "erro ao ler histórico", visto: {}, alteracoes: [] });
   }
