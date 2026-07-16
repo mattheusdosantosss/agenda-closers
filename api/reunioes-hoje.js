@@ -94,9 +94,10 @@ function parseIds(raw) {
 }
 
 const DIA_MS = 24 * 60 * 60 * 1000;
-const RANGES = ["hoje", "amanha", "semana", "mes"];
+const RANGES = ["ontem", "hoje", "amanha", "semana", "mes"];
 
 // Janela [inicio, fim] em ms epoch para o período pedido, no fuso de Brasília.
+//   ontem  -> só ontem
 //   hoje   -> só hoje
 //   amanha -> só amanhã
 //   semana -> de hoje até domingo desta semana
@@ -112,6 +113,8 @@ function janelaPara(range) {
 
   const hoje0 = inicioDia(y, m, d);
   switch (range) {
+    case "ontem":
+      return { inicio: hoje0 - DIA_MS, fim: hoje0 - 1 };
     case "amanha":
       return { inicio: hoje0 + DIA_MS, fim: hoje0 + 2 * DIA_MS - 1 };
     case "semana": {

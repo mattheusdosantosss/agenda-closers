@@ -285,6 +285,7 @@
       <button class="tab" data-seg="B2C">B2C</button>
     </nav>
     <nav class="tabs periodo" id="rangeTabs">
+      <button class="tab" data-range="ontem">Ontem</button>
       <button class="tab" data-range="hoje">Hoje</button>
       <button class="tab" data-range="amanha">Amanhã</button>
       <button class="tab" data-range="semana">Semana</button>
@@ -558,8 +559,8 @@ function faltamMin(d, agora){
 }
 
 /* estado: segmento (B2B/B2C) e período (hoje/amanha/semana/mes), via URL ou abas */
-const RANGES = ['hoje','amanha','semana','mes'];
-const RANGE_LABEL = {hoje:'hoje', amanha:'amanhã', semana:'esta semana', mes:'este mês'};
+const RANGES = ['ontem','hoje','amanha','semana','mes'];
+const RANGE_LABEL = {ontem:'ontem', hoje:'hoje', amanha:'amanhã', semana:'esta semana', mes:'este mês'};
 const params = new URLSearchParams(location.search);
 const state = {
   seg: (params.get('seg')||'B2B').toUpperCase(),
