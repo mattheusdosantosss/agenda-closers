@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Esboço · B2B Squads (mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @font-face{
+    font-family:"Bruta Pro";
+    src:local("Bruta Pro Compressed ExtraBold"), url("fonts/brutaprocompressed-extrabold.otf") format("opentype");
+    font-weight:100 900;font-style:normal;font-display:swap;
+  }
+  :root{
+    --bg:#0b0b0e;--bg-2:#101014;--panel:#141417;--panel-2:#1a1a20;--line:#26262c;
+    --ink:#f4f4f6;--muted:#c4c4cd;--dim:#8a8a93;
+    --orange:#ff6a1a;--blue:#5aa9ff;
+    --now:#FF6A00;--done:#3AAF3A;--sched:#FFB703;--next:#0f5132;--miss:#ff5a5a;
+    --num:'Bruta Pro','Archivo',sans-serif;--sans:'Archivo',system-ui,sans-serif;--inter:'Inter',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    font-family:var(--sans);color:var(--ink);height:100vh;overflow:hidden;display:flex;flex-direction:column;
+    background:radial-gradient(1200px 600px at 85% -10%, rgba(255,106,26,.12), transparent 60%),
+      radial-gradient(900px 500px at 0% 110%, rgba(90,169,255,.10), transparent 55%), var(--bg);
+    -webkit-font-smoothing:antialiased;
+  }
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 26px;border-bottom:1px solid var(--line);flex:0 0 auto;background:linear-gradient(180deg,var(--bg-2),transparent)}
+  .brand{display:flex;align-items:center;gap:14px}
+  .dot{width:13px;height:13px;border-radius:50%;background:var(--now);box-shadow:0 0 0 0 rgba(255,106,26,.6);animation:pulse 1.6s infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,106,26,.55)}70%{box-shadow:0 0 0 14px rgba(255,106,26,0)}100%{box-shadow:0 0 0 0 rgba(255,106,26,0)}}
+  h1{font-family:var(--num);font-weight:700;font-size:28px;letter-spacing:.10em;text-transform:uppercase;line-height:1}
+  .sub{color:var(--muted);font-size:11px;letter-spacing:.28em;text-transform:uppercase;font-weight:600;margin-top:4px}
+  .toggle{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:5px}
+  .toggle button{font-family:var(--num);font-weight:700;font-size:16px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:8px 18px;border:none;background:transparent;border-radius:8px;cursor:pointer}
+  .toggle button.active{background:var(--orange);color:#0b0b0e}
+  .flag{font-size:11px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;text-align:right}
+  .flag b{color:var(--sched)}
+
+  /* ---------- grade de 5 squads ---------- */
+  .grid{flex:1 1 auto;display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:12px 26px 18px;overflow:hidden}
+  .squad{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:16px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .squad-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 14px;border-bottom:1px solid var(--line)}
+  .squad-h .nome{font-family:var(--num);font-weight:700;font-size:24px;letter-spacing:.02em;line-height:1}
+  .squad-h .tag{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);background:rgba(255,106,26,.14);padding:4px 9px;border-radius:999px}
+
+  /* pessoa (bloco) */
+  .pessoa{display:flex;flex-direction:column;min-height:0;padding:9px 12px;border-bottom:1px solid var(--line)}
+  .pessoa:last-child{border-bottom:none}
+  .pessoa.lider{background:rgba(255,106,26,.06)}
+  .pessoa .p-h{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .pessoa .p-nome{font-family:var(--inter);font-weight:700;font-size:15px}
+  .pessoa.lider .p-nome::after{content:"LÍDER";font-family:var(--inter);font-size:9px;font-weight:700;letter-spacing:.1em;color:var(--orange);background:rgba(255,106,26,.16);padding:2px 6px;border-radius:999px;margin-left:7px;vertical-align:middle}
+  .pessoa .p-cnt{margin-left:auto;display:flex;gap:9px;font-family:var(--inter);font-size:11px;color:var(--muted)}
+  .pessoa .p-cnt b{font-family:var(--inter);font-weight:700}
+  .ag{display:flex;flex-direction:column;gap:4px;overflow:hidden}
+  .ap{display:flex;align-items:center;gap:9px;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.28);border-left:4px solid var(--c);min-width:0}
+  .ap .t{font-family:var(--inter);font-weight:700;font-size:14px;color:var(--c);font-variant-numeric:tabular-nums;flex:0 0 auto}
+  .ap .c{font-size:12px;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+  .ap .g{font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--c);white-space:nowrap;flex:0 0 auto}
+  .ap.cancel .c{text-decoration:line-through;opacity:.7}
+  .vazio{color:var(--dim);font-size:12px;padding:4px 2px}
+
+  /* ---------- Opção B: squad consolidado ---------- */
+  .squad-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:10px 12px;border-bottom:1px solid var(--line)}
+  .k{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:9px;padding:6px 4px;text-align:center}
+  .k .n{font-family:var(--num);font-weight:700;font-size:26px;line-height:.9;color:var(--c)}
+  .k .l{font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-top:3px;font-weight:600}
+  .squad-b-list{flex:1 1 auto;display:flex;flex-direction:column;gap:4px;padding:9px 12px;overflow:hidden}
+  .bp{display:flex;align-items:center;gap:8px;padding:5px 9px;border-radius:8px;background:rgba(0,0,0,.28);border-left:4px solid var(--c);min-width:0}
+  .bp .t{font-family:var(--inter);font-weight:700;font-size:13px;color:var(--c);flex:0 0 auto;font-variant-numeric:tabular-nums}
+  .bp .quem{font-family:var(--inter);font-weight:700;font-size:11px;flex:0 0 auto;padding:1px 6px;border-radius:5px;background:rgba(255,255,255,.06)}
+  .bp .quem.lider{color:var(--orange);background:rgba(255,106,26,.14)}
+  .bp .c{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 auto;min-width:0}
+  .bp .g{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--c);flex:0 0 auto}
+
+  .hidden{display:none !important}
+  footer{position:fixed;right:14px;bottom:7px;color:var(--dim);font-size:10.5px;letter-spacing:.05em}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="dot"></span>
+    <div><h1>Agenda de Reuniões</h1><div class="sub">B2B · Squads · ESBOÇO</div></div>
+  </div>
+  <div class="toggle">
+    <button id="btnA" class="active" onclick="setOpcao('A')">Opção A · por pessoa</button>
+    <button id="btnB" onclick="setOpcao('B')">Opção B · consolidado</button>
+  </div>
+  <div class="flag">Mockup · <b>dados fictícios</b><br>não é produção</div>
+</header>
+
+<main class="grid" id="gridA"></main>
+<main class="grid hidden" id="gridB"></main>
+
+<footer>Esboço para validação · 5 squads (líder + 2)</footer>
+
+<script>
+const SQUADS = [
+  {lider:'Nico',    membros:['Mateus','Catarina']},
+  {lider:'Diego',   membros:['Rafa Alves','Gabriel Alves']},
+  {lider:'César',   membros:['João G.','Talita']},
+  {lider:'Vince',   membros:['Rafa Teixeira','Wager']},
+  {lider:'Leandro', membros:['João L.','Felippe Freitas']},
+];
+const CONTATOS = ['Rafael Souza','Bianca Lima','Diego Prado','Helena Dias','Otávio Reis','Paula Nunes','Sérgio Mota','Lívia Torres','André Melo','Tiago Farias','Isabela Cruz','Gustavo Pinto','Renata Vieira','Fábio Moura','Marcelo Anjos','Aline Costa','Rodrigo Sá','Clara Nunes','Ivo Ramos','Sofia Braga','Márcio Leal','Beatriz Amaral','Caio Fontes','Núbia Rocha','Larissa Pena','Hugo Teixeira','Carla Freitas','Sandra Lopes','Vera Kopp','Caio Melo'];
+
+// gera reuniões fictícias determinísticas para uma pessoa (idx global)
+function gerar(idx){
+  const qtd = 2 + ((idx*3+2)%5); // 2..6
+  const arr=[];
+  for(let i=0;i<qtd;i++){
+    const min = 9*60 + ((idx*41 + i*67) % 570); // 09:00 .. ~18:30
+    const h = String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0');
+    const s = ['REALIZADA','REALIZADA','AGORA','FUTURA','FUTURA','PERDIDA','CANCELADA'][(idx*7+i*3)%7];
+    arr.push({hora:h, contato:CONTATOS[(idx*5+i*3)%CONTATOS.length], status:s});
+  }
+  return arr.sort((a,b)=>a.hora.localeCompare(b.hora));
+}
+const VIS = {
+  REALIZADA:{c:'var(--done)', g:'Realizada'},
+  AGORA:{c:'var(--now)', g:'Agora'},
+  FUTURA:{c:'var(--sched)', g:'Agendada'},
+  PERDIDA:{c:'var(--miss)', g:'No-show'},
+  CANCELADA:{c:'var(--dim)', g:'Cancelada'},
+};
+const cont = (r)=>VIS[r.status]||VIS.FUTURA;
+
+// monta o dataset (líder + membros por squad), com um índice global p/ variar dados
+let gi=0;
+const DADOS = SQUADS.map(sq=>{
+  const pessoas = [{nome:sq.lider, lider:true}, ...sq.membros.map(m=>({nome:m, lider:false}))]
+    .map(p=>({...p, reunioes:gerar(gi++)}));
+  return {lider:sq.lider, pessoas};
+});
+
+function resumo(reun){
+  const r={ag:reun.length,re:0,no:0,fu:0};
+  reun.forEach(m=>{ if(m.status==='REALIZADA')r.re++; else if(m.status==='PERDIDA')r.no++; else if(m.status==='FUTURA'||m.status==='AGORA')r.fu++; });
+  return r;
+}
+
+/* ---------- Opção A ---------- */
+function renderA(){
+  const g = document.getElementById('gridA');
+  g.innerHTML = DADOS.map(sq=>`
+    <div class="squad">
+      <div class="squad-h"><span class="nome">${sq.lider}</span><span class="tag">Squad</span></div>
+      ${sq.pessoas.map(p=>{
+        const r=resumo(p.reunioes);
+        return `<div class="pessoa ${p.lider?'lider':''}">
+          <div class="p-h"><span class="p-nome">${p.nome}</span>
+            <span class="p-cnt"><span><b>${r.ag}</b> ag.</span><span style="color:var(--done)"><b>${r.re}</b> re.</span><span style="color:var(--sched)"><b>${r.fu}</b> fu.</span></span>
+          </div>
+          <div class="ag">
+            ${p.reunioes.map(m=>{const v=cont(m);return `<div class="ap ${m.status==='CANCELADA'?'cancel':''}" style="--c:${v.c}"><span class="t">${m.hora}</span><span class="c">${m.contato}</span><span class="g">${v.g}</span></div>`;}).join('')}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+/* ---------- Opção B ---------- */
+function renderB(){
+  const g = document.getElementById('gridB');
+  g.innerHTML = DADOS.map(sq=>{
+    // agenda unificada do squad
+    const linhas=[];
+    sq.pessoas.forEach(p=>p.reunioes.forEach(m=>linhas.push({...m, quem:p.nome, lider:p.lider})));
+    linhas.sort((a,b)=>a.hora.localeCompare(b.hora));
+    const tot={ag:linhas.length,re:0,ag2:0,fu:0};
+    linhas.forEach(m=>{ if(m.status==='REALIZADA')tot.re++; else if(m.status==='AGORA')tot.ag2++; else if(m.status==='FUTURA')tot.fu++; });
+    return `<div class="squad">
+      <div class="squad-h"><span class="nome">${sq.lider}</span><span class="tag">Squad · 3</span></div>
+      <div class="squad-kpis">
+        <div class="k" style="--c:var(--sched)"><div class="n">${tot.ag}</div><div class="l">Agend.</div></div>
+        <div class="k" style="--c:var(--done)"><div class="n">${tot.re}</div><div class="l">Realiz.</div></div>
+        <div class="k" style="--c:var(--now)"><div class="n">${tot.ag2}</div><div class="l">Agora</div></div>
+        <div class="k" style="--c:var(--sched)"><div class="n">${tot.fu}</div><div class="l">Futuras</div></div>
+      </div>
+      <div class="squad-b-list">
+        ${linhas.map(m=>{const v=cont(m); const prim=m.quem.split(' ')[0];
+          return `<div class="bp" style="--c:${v.c}"><span class="t">${m.hora}</span><span class="quem ${m.lider?'lider':''}">${prim}</span><span class="c">${m.contato}</span><span class="g">${v.g}</span></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setOpcao(o){
+  document.getElementById('btnA').classList.toggle('active', o==='A');
+  document.getElementById('btnB').classList.toggle('active', o==='B');
+  document.getElementById('gridA').classList.toggle('hidden', o!=='A');
+  document.getElementById('gridB').classList.toggle('hidden', o!=='B');
+}
+
+renderA(); renderB(); setOpcao('A');
+</script>
+</body>
+</html>
