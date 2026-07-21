@@ -324,9 +324,10 @@ async function contatosDasMeetings(token, meetingIds) {
 function normalizaOutcome(v) {
   const s = String(v || "").toUpperCase();
   if (s.includes("CANCEL")) return "CANCELED";
+  if (s.includes("RESCHEDUL") || s.includes("REPROGRAM")) return "RESCHEDULED"; // "Reprogramado"
   if (s.includes("NO_SHOW") || s.includes("NO SHOW")) return "NO_SHOW";
   if (s.includes("COMPLETED")) return "COMPLETED";
-  return "SCHEDULED"; // SCHEDULED, RESCHEDULED ou vazio
+  return "SCHEDULED"; // SCHEDULED ou vazio
 }
 
 async function montarSegmento(token, ownerIds, segmento, janela, diag) {
@@ -396,6 +397,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       // conta tudo que foi agendado; cancelada e no-show são circunstanciais
       outcome:
         oc === "CANCELED" ? "CANCELED"
+        : oc === "RESCHEDULED" ? "RESCHEDULED"
         : oc === "NO_SHOW" ? "NO_SHOW"
         : oc === "COMPLETED" ? "COMPLETED"
         : "SCHEDULED",
@@ -506,11 +508,12 @@ export default async function handler(req, res) {
       payload._diagB2C = diagB2C;
       // tally por status (mesma regra do front) p/ conferir que a soma = agendadas
       const agoraMs = Date.now();
-      const t = { agendadas: 0, realizadas: 0, agora: 0, futuras: 0, perdidas: 0, aRegistrar: 0, canceladas: 0 };
+      const t = { agendadas: 0, realizadas: 0, agora: 0, futuras: 0, perdidas: 0, aRegistrar: 0, canceladas: 0, reprogramadas: 0 };
       for (const c of closersB2C) for (const m of c.reunioes) {
         t.agendadas++;
         const ini = new Date(m.inicio).getTime(), fim = new Date(m.fim).getTime();
         if (m.outcome === "CANCELED") t.canceladas++;
+        else if (m.outcome === "RESCHEDULED") t.reprogramadas++;
         else if (m.outcome === "COMPLETED") t.realizadas++;
         else if (m.outcome === "NO_SHOW") t.perdidas++;
         else if (agoraMs >= ini && agoraMs <= fim) t.agora++;

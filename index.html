@@ -114,7 +114,7 @@
 
   /* ---------- KPIs ---------- */
   .kpis{
-    display:grid;grid-template-columns:repeat(7,1fr);gap:11px;
+    display:grid;grid-template-columns:repeat(8,1fr);gap:10px;
     padding:12px 30px;flex:0 0 auto;
   }
   .kpi{
@@ -430,7 +430,7 @@ function gerarDadosDemo(){
     {nome:"César", lider:"Cesar Filho", membros:["João Marins","Talita Cruz"]},
   ];
   const CT=["Rafael Souza","Bianca Lima","Diego Prado","Helena Dias","Otávio Reis","Paula Nunes","Sérgio Mota","Lívia Torres","André Melo","Tiago Farias","Isabela Cruz","Gustavo Pinto"];
-  const OUT=["COMPLETED","NO_SHOW","SCHEDULED","SCHEDULED","COMPLETED"];
+  const OUT=["COMPLETED","NO_SHOW","SCHEDULED","RESCHEDULED","COMPLETED","SCHEDULED"];
   let gi=0; const b2b=[];
   SQ_DEMO.forEach((s,si)=>{
     [{nome:s.lider,lider:true},...s.membros.map(n=>({nome:n,lider:false}))].forEach(p=>{
@@ -487,9 +487,10 @@ function gerarDadosDemo(){
    ============================================================ */
 function statusReuniao(m, agora){
   // Resultado registrado tem prioridade (bate com o relatório do HubSpot):
-  if (m.outcome === "CANCELED")  return "CANCELADA";   // agendada mas cancelada
-  if (m.outcome === "COMPLETED") return "REALIZADA";   // = "Concluído"
-  if (m.outcome === "NO_SHOW")   return "PERDIDA";      // = "No-show"
+  if (m.outcome === "CANCELED")    return "CANCELADA";    // agendada mas cancelada
+  if (m.outcome === "RESCHEDULED") return "REPROGRAMADA"; // resultado "Reprogramado"
+  if (m.outcome === "COMPLETED")   return "REALIZADA";    // = "Concluído"
+  if (m.outcome === "NO_SHOW")     return "PERDIDA";      // = "No-show"
   // Sem resultado ainda -> decide pelo horário:
   if (agora >= m.inicio && agora <= m.fim) return "AGORA";
   if (agora < m.inicio) return "FUTURA";
@@ -503,13 +504,14 @@ function statusVisual(s){
     case "REALIZADA": return {cor:"var(--done)", tag:"Realizada"};
     case "PERDIDA":   return {cor:"var(--miss)", tag:"No-show"};
     case "CANCELADA": return {cor:"var(--dim)",  tag:"Cancelada"};
+    case "REPROGRAMADA": return {cor:"var(--blue)", tag:"Reprogramada"};
     case "PENDENTE":  return {cor:"var(--muted)",tag:"A registrar"};
     default:          return {cor:"var(--sched)",tag:"Agendada"}; // FUTURA
   }
 }
 
 function resumoCloser(c, agora){
-  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0};
+  const r = {agendadas:c.reunioes.length, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0, reprogramadas:0};
   let emAndamento=null, aSeguir=null;
   const futuras=[];
   c.reunioes.forEach(m=>{
@@ -520,6 +522,7 @@ function resumoCloser(c, agora){
     else if(s==="PERDIDA") r.perdidas++;
     else if(s==="PENDENTE") r.pendentes++;
     else if(s==="CANCELADA") r.canceladas++;
+    else if(s==="REPROGRAMADA") r.reprogramadas++;
   });
   futuras.sort((a,b)=>a.inicio-b.inicio);
   aSeguir = futuras[0] || null;
@@ -541,7 +544,7 @@ function agrupaPorDia(reunioes, agora){
   const byDay = new Map();
   reunioes.forEach(m=>{
     const key = m.inicio.toDateString();
-    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0});
+    if(!byDay.has(key)) byDay.set(key, {dia:m.inicio, total:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0, reprogramadas:0});
     const g = byDay.get(key);
     g.total++;
     const s = statusReuniao(m, agora);
@@ -551,6 +554,7 @@ function agrupaPorDia(reunioes, agora){
     else if(s==="PERDIDA") g.perdidas++;
     else if(s==="PENDENTE") g.pendentes++;
     else if(s==="CANCELADA") g.canceladas++;
+    else if(s==="REPROGRAMADA") g.reprogramadas++;
   });
   return [...byDay.values()].sort((a,b)=>a.dia-b.dia);
 }
@@ -598,11 +602,11 @@ function render(dados){
   document.getElementById('brandSub').textContent = `Closers ${state.seg} · ${RANGE_LABEL[state.range]}`;
 
   // KPIs agregados do segmento
-  const tot = {agendadas:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0};
+  const tot = {agendadas:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0, reprogramadas:0};
   const resumos = doSeg.map(c=>{
     const r = resumoCloser(c, agora);
     tot.agendadas+=r.agendadas; tot.realizadas+=r.realizadas; tot.agora+=r.agora; tot.futuras+=r.futuras;
-    tot.perdidas+=r.perdidas; tot.pendentes+=r.pendentes; tot.canceladas+=r.canceladas;
+    tot.perdidas+=r.perdidas; tot.pendentes+=r.pendentes; tot.canceladas+=r.canceladas; tot.reprogramadas+=r.reprogramadas;
     return {c, r};
   });
 
@@ -615,6 +619,7 @@ function render(dados){
     {n:tot.futuras, t:"Futuras", s:"Futuras", c:"var(--next)", k:"FUTURA"},
     {n:tot.perdidas, t:"No-show", s:"No-show", c:"var(--miss)", k:"PERDIDA"},
     {n:tot.pendentes, t:"A registrar", s:"A registrar", c:"var(--muted)", k:"PENDENTE"},
+    {n:tot.reprogramadas, t:"Reprogramadas", s:"Reprogramada", c:"var(--blue)", k:"REPROGRAMADA"},
     {n:tot.canceladas, t:"Canceladas", s:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
   const chips = state.seg === 'B2B'; // B2B usa chips compactos; B2C usa cards
@@ -665,6 +670,7 @@ function render(dados){
         if(g.agora) partes.push(`${g.agora} agora`);
         if(g.futuras) partes.push(`${g.futuras} agend.`);
         if(g.pendentes) partes.push(`${g.pendentes} a registrar`);
+        if(g.reprogramadas) partes.push(`${g.reprogramadas} reprog.`);
         if(g.perdidas) partes.push(`${g.perdidas} no-show`);
         if(g.canceladas) partes.push(`${g.canceladas} cancel.`);
         const sub = partes.join(" · ") || "—";
@@ -686,6 +692,7 @@ function render(dados){
         else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
         else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
         else if(s==="CANCELADA"){ cor="var(--dim)"; tag="Cancelada"; cls="past cancel"; }
+        else if(s==="REPROGRAMADA"){ cor="var(--blue)"; tag="Reprogramada"; cls="past"; }
         else if(s==="PENDENTE"){ cor="var(--muted)"; tag="A registrar"; cls=""; }
         else { // FUTURA
           cor="var(--sched)";
