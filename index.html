@@ -266,7 +266,7 @@
     background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 12px 6px 10px;border-left:4px solid var(--c);transition:border-color .15s}
   .chip:hover{border-color:var(--c)}
   .chip b{font-family:var(--num);font-weight:700;font-size:24px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
-  .chip span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.1;white-space:normal;max-width:60px}
+  .chip span{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.1;white-space:normal;overflow-wrap:anywhere;max-width:72px}
 
   /* grade de squads */
   .grid.squads{grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:minmax(0,1fr)}
@@ -619,7 +619,7 @@ function render(dados){
     {n:tot.futuras, t:"Futuras", s:"Futuras", c:"var(--next)", k:"FUTURA"},
     {n:tot.perdidas, t:"No-show", s:"No-show", c:"var(--miss)", k:"PERDIDA"},
     {n:tot.pendentes, t:"A registrar", s:"A registrar", c:"var(--muted)", k:"PENDENTE"},
-    {n:tot.reprogramadas, t:"Reprogramadas", s:"Reprogramada", c:"var(--blue)", k:"REPROGRAMADA"},
+    {n:tot.reprogramadas, t:"Reprogramadas", s:"Reprog.", c:"var(--blue)", k:"REPROGRAMADA"},
     {n:tot.canceladas, t:"Canceladas", s:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
   const chips = state.seg === 'B2B'; // B2B usa chips compactos; B2C usa cards
