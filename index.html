@@ -703,7 +703,11 @@ function render(dados){
         // mais clean: nome do contato vinculado (cai no título só se não houver contato)
         const nomeLinha = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const emp = (m.empresa||'').trim();
-        const subLinha = (emp && emp!=='—') ? `<div class="c">${emp}</div>` : '';
+        const perfil = (m.perfil||'').trim();
+        const subP = [];
+        if(emp && emp!=='—') subP.push(emp);
+        if(perfil) subP.push(`<b style="color:var(--blue)">${perfil}</b>`);
+        const subLinha = subP.length ? `<div class="c">${subP.join(' · ')}</div>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="appt ${cls}" style="--c:${cor}"${href}>
           <div class="time"><span class="ini">${fmtHora(m.inicio)}</span></div>
@@ -770,7 +774,9 @@ function pessoaBlock(c, r, agora){
     const s = statusReuniao(m, agora);
     const v = statusVisual(s);
     const emp = (m.empresa||'').trim();
-    const info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato || m.titulo || '—');
+    const perfil = (m.perfil||'').trim();
+    let info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato || m.titulo || '—');
+    if(perfil) info += ` · <b style="color:var(--blue)">${perfil}</b>`;
     const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
     const cls = s==='CANCELADA' ? 'ap2 cancel' : 'ap2';
     return `<a class="${cls}" style="--c:${v.cor}"${href}><span class="t">${fmtHora(m.inicio)}</span><span class="c">${info}</span><span class="g">${v.tag}</span></a>`;
