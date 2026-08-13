@@ -48,9 +48,7 @@ const DEFAULT_B2C = [
   "88628309", // João Paulo da Silveira Araújo
   "89632494", // Willker Santos Belous
   "88628313", // Gabrielly Milani da Silva
-  "81035544", // Camila Fay
   "88200239", // Luiza Rodriguez
-  "84249251", // Tércio Ferreira da Silva
 ];
 
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
@@ -321,6 +319,51 @@ async function contatosDasMeetings(token, meetingIds) {
   return info;
 }
 
+// "perfil" é propriedade do NEGÓCIO (deal). Cada meeting -> deal associado -> perfil.
+async function perfisDasMeetings(token, meetingIds) {
+  const info = new Map(); // meetingId -> perfil
+  if (!meetingIds.length) return info;
+
+  const meetingToDeal = new Map();
+  const dealIds = new Set();
+  await Promise.all(
+    emLotes(meetingIds, 100).map(async (lote) => {
+      const assoc = await fetch(`${BASE}/crm/v4/associations/meetings/deals/batch/read`, {
+        method: "POST",
+        headers: headers(token),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id: String(id) })) }),
+        cache: "no-store",
+      });
+      if (!assoc.ok) return;
+      const data = await assoc.json();
+      for (const row of data.results ?? []) {
+        const from = String(row.from?.id ?? "");
+        const to = row.to?.[0]?.toObjectId ?? row.to?.[0]?.id;
+        if (from && to != null) { meetingToDeal.set(from, String(to)); dealIds.add(String(to)); }
+      }
+    })
+  );
+  if (!dealIds.size) return info;
+
+  const perfilPorDeal = new Map();
+  await Promise.all(
+    emLotes([...dealIds], 100).map(async (lote) => {
+      const res = await fetch(`${BASE}/crm/v3/objects/deals/batch/read`, {
+        method: "POST",
+        headers: headers(token),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil"] }),
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const d of data.results ?? []) perfilPorDeal.set(String(d.id), (d.properties?.perfil ?? "").trim());
+    })
+  );
+
+  for (const [mId, dId] of meetingToDeal) info.set(mId, perfilPorDeal.get(dId) || "");
+  return info;
+}
+
 // Classifica o resultado bruto do HubSpot. CANCELED é usado para EXCLUIR a
 // reunião (não conta como marcada). O front só entende SCHEDULED/COMPLETED/
 // NO_SHOW e decide "realizada" pelo horário quando não há no-show.
@@ -340,10 +383,11 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
     buscarMeetings(token, ownerIds, janela),
   ]);
 
-  const contatos = await contatosDasMeetings(
-    token,
-    meetings.map((m) => m.id).filter(Boolean)
-  );
+  const ids = meetings.map((m) => m.id).filter(Boolean);
+  const [contatos, perfis] = await Promise.all([
+    contatosDasMeetings(token, ids),
+    perfisDasMeetings(token, ids),
+  ]);
 
   const dpo = (owner) => {
     if (!diag) return null;
@@ -395,6 +439,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       contato: ct.contato,
       empresa: segmento === "B2C" ? "—" : ct.empresa,
       tipo,
+      perfil: perfis.get(String(m.id)) || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
       // conta tudo que foi agendado; cancelada e no-show são circunstanciais

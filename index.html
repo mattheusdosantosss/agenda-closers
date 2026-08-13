@@ -805,7 +805,9 @@ function abrirModal(key, titulo, cor){
     lista.innerHTML = itens.map(({c,m,s})=>{
       const v = statusVisual(s);
       const emp = (m.empresa||'').trim();
-      const info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato||m.titulo||'—');
+      const perfil = (m.perfil||'').trim();
+      let info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato||m.titulo||'—');
+      if(perfil) info += ` · <b style="color:var(--blue)">${perfil}</b>`;
       const dia = multiDia ? `<small>${fmtDia(m.inicio)}</small>` : '';
       const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
       const cls = s==='CANCELADA' ? ' cancel' : '';
