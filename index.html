@@ -425,11 +425,10 @@ function gerarDadosDemo(){
   };
   // B2B em squads (demo) — mesma estrutura da produção (líder + membros)
   const SQ_DEMO = [
-    {nome:"Nico", lider:"Nicollas Lenuzza", membros:["Mateus Mariano","Catarina Borges"]},
-    {nome:"Diego", lider:"Diego Conceição", membros:["Rafael Alves","Gabriel Alves"]},
-    {nome:"Vince", lider:"Eduardo Vince", membros:["Rafael Teixeira"]},
-    {nome:"Leandro", lider:"Leandro Bengochea", membros:["João Backmann","Felippe Freitas"]},
-    {nome:"César", lider:"Cesar Filho", membros:["João Marins","Talita Cruz"]},
+    {nome:"", lider:"Eduardo Vince", membros:["Rafael Teixeira","Mateus Mariano","Wagner Freitas","Tércio Silva"]},
+    {nome:"", lider:"Cesar Filho", membros:["João Marins","Rafael O. Alves","Bruna Machado","Gustavo Pacheco"]},
+    {nome:"", lider:"Diego Conceição", membros:["Catarina Borges","Talita Cruz","Maria Eduarda"]},
+    {nome:"", lider:"Leandro Bengochea", membros:["João Lucas Backmann","Felippe Freitas","Thiago Berto"]},
   ];
   const CT=["Rafael Souza","Bianca Lima","Diego Prado","Helena Dias","Otávio Reis","Paula Nunes","Sérgio Mota","Lívia Torres","André Melo","Tiago Farias","Isabela Cruz","Gustavo Pinto"];
   const OUT=["COMPLETED","NO_SHOW","SCHEDULED","RESCHEDULED","COMPLETED","SCHEDULED"];
@@ -763,12 +762,12 @@ function renderSquads(resumos, agora){
     porSquad.get(si).push(x);
   });
   const ordenados = [...porSquad.entries()].sort((a,b)=>a[0]-b[0]);
+  grid.style.gridTemplateColumns = `repeat(${ordenados.length},minmax(0,1fr))`;
   grid.innerHTML = ordenados.map(([si, membros])=>{
     membros.sort((a,b)=> (b.c.lider?1:0)-(a.c.lider?1:0)); // líder primeiro
     const lider = membros.find(m=>m.c.lider) || membros[0];
-    const nomeSquad = lider?.c.squadNome || (lider?.c.nome || 'Squad').split(' ')[0];
     return `<div class="squad">
-      <div class="squad-h"><span class="nome">${nomeSquad}</span><span class="tag">Squad</span></div>
+      <div class="squad-h"><span class="tag">Squad</span></div>
       ${membros.map(({c,r})=>pessoaBlock(c, r, agora)).join('')}
     </div>`;
   }).join('');

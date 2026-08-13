@@ -25,12 +25,13 @@ const CORES = ["#ff6a1a", "#5aa9ff", "#ffa24d", "#46d17f"];
 
 // B2B em SQUADS (reestruturação 2026-07-16). Cada squad = líder + membros
 // (ownerId do HubSpot). Wagner (squad Vince) ainda não existe -> entra depois.
+// Blocos sem título (nome vazio). Gabriel Alves removido. 6 novos closers
+// distribuídos de forma balanceada.
 const SQUADS_B2B = [
-  { nome: "Nico",    lider: "80454573", membros: ["86859895", "80651489"] },   // Nicollas: Mateus, Catarina
-  { nome: "Diego",   lider: "79760744", membros: ["92333469", "94316538"] },   // Diego: Rafael Alves, Gabriel Alves
-  { nome: "Vince",   lider: "80454576", membros: ["80454586"] },               // Eduardo Vince: Rafael Teixeira (+ Wagner futuramente)
-  { nome: "Leandro", lider: "80454585", membros: ["87159365", "94028856"] },   // Leandro: João Backmann, Felippe Freitas
-  { nome: "César",   lider: "80454584", membros: ["80454588", "92704130"] },   // Cesar: João Marins, Talita
+  { nome: "", lider: "80454576", membros: ["80454586", "86859895", "95811085", "84249251"] },  // Eduardo Vince, Rafael Teixeira, Mateus Mariano, +Wagner, +Tércio
+  { nome: "", lider: "80454584", membros: ["80454588", "92333469", "85002012", "81033487"] },  // Cesar Filho, João Marins, Rafael O. Alves, +Bruna, +Gustavo
+  { nome: "", lider: "79760744", membros: ["80651489", "92704130", "89632472"] },              // Diego Conceição, Catarina, Talita, +Maria Eduarda
+  { nome: "", lider: "80454585", membros: ["87159365", "94028856", "79760745"] },              // Leandro, João Lucas Backmann, Felippe, +Thiago Berto
 ];
 // ordem achatada (líder, depois membros de cada squad) — usada na busca.
 const DEFAULT_B2B = SQUADS_B2B.flatMap((s) => [s.lider, ...s.membros]);
