@@ -319,9 +319,7 @@
       <button class="tab" data-seg="B2C">B2C</button>
     </nav>
     <nav class="tabs periodo" id="rangeTabs">
-      <button class="tab" data-range="ontem">Ontem</button>
-      <button class="tab" data-range="hoje">Hoje</button>
-      <button class="tab" data-range="amanha">Amanhã</button>
+      <!-- botões dos dias úteis (seg-sex) da semana atual são injetados por JS aqui -->
       <button class="tab" data-range="semana">Semana</button>
       <button class="tab" data-range="mes">Mês</button>
     </nav>
@@ -572,16 +570,47 @@ function faltamMin(d, agora){
   return `em ${hh}h${mm?(' '+mm+'min'):''}`;
 }
 
-/* estado: segmento (B2B/B2C) e período (hoje/amanha/semana/mes), via URL ou abas */
-const RANGES = ['ontem','hoje','amanha','semana','mes'];
-const RANGE_LABEL = {ontem:'ontem', hoje:'hoje', amanha:'amanhã', semana:'esta semana', mes:'este mês'};
+/* estado: segmento (B2B/B2C) e período. O período é 'semana', 'mes' ou uma
+   DATA 'YYYY-MM-DD' (abas dos dias úteis seg-sex da semana atual). */
+const isoDia = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+const HOJE_ISO = isoDia(new Date());
+const DIAS_SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
+// segunda-feira da semana da data dada
+function segundaDaSemana(base){ const d=new Date(base); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); return d; }
+// dias úteis (seg..sex) da semana atual: [{iso,label}]
+const DIAS_UTEIS = Array.from({length:5}, (_,i)=>{ const d=segundaDaSemana(new Date()); d.setDate(d.getDate()+i); return {iso:isoDia(d), label:['Segunda','Terça','Quarta','Quinta','Sexta'][i]}; });
+const ehData = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
+function rangeLabel(r){
+  if(r==='semana') return 'esta semana';
+  if(r==='mes') return 'este mês';
+  if(r===HOJE_ISO) return 'hoje';
+  const [y,m,d]=r.split('-'); return `${DIAS_SEMANA[new Date(+y,+m-1,+d).getDay()]} ${d}/${m}`;
+}
+const ehHojeSel = () => state.range===HOJE_ISO;
+
 const params = new URLSearchParams(location.search);
 const state = {
   seg: (params.get('seg')||'B2B').toUpperCase(),
-  range: (params.get('range')||'hoje').toLowerCase(),
+  range: (params.get('range')||'').toLowerCase(),
 };
 if(!['B2B','B2C'].includes(state.seg)) state.seg='B2B';
-if(!RANGES.includes(state.range)) state.range='hoje';
+// período válido = semana | mes | data seg-sex desta semana; senão hoje (ou 1ª útil se fim de semana)
+const DIAS_UTEIS_ISO = DIAS_UTEIS.map(x=>x.iso);
+if(!['semana','mes'].includes(state.range) && !DIAS_UTEIS_ISO.includes(state.range)){
+  state.range = DIAS_UTEIS_ISO.includes(HOJE_ISO) ? HOJE_ISO : DIAS_UTEIS_ISO[0];
+}
+
+// injeta as abas dos dias úteis antes de Semana/Mês
+(function(){
+  const nav = document.getElementById('rangeTabs');
+  const antes = nav.querySelector('[data-range="semana"]');
+  DIAS_UTEIS.forEach(d=>{
+    const b=document.createElement('button'); b.className='tab'; b.dataset.range=d.iso;
+    b.textContent = d.label;
+    if(d.iso===HOJE_ISO) b.title='Hoje';
+    nav.insertBefore(b, antes);
+  });
+})();
 
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
 function colsFor(n){
@@ -604,7 +633,7 @@ function render(dados){
   // atualiza abas (segmento + período) e subtítulo
   document.querySelectorAll('#segTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.seg===state.seg));
   document.querySelectorAll('#rangeTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.range===state.range));
-  document.getElementById('brandSub').textContent = `Closers ${state.seg} · ${RANGE_LABEL[state.range]}`;
+  document.getElementById('brandSub').textContent = `Closers ${state.seg} · ${rangeLabel(state.range)}`;
 
   // KPIs agregados do segmento
   const tot = {agendadas:0, realizadas:0, agora:0, futuras:0, perdidas:0, pendentes:0, canceladas:0, reprogramadas:0};
@@ -618,7 +647,7 @@ function render(dados){
   // Agendadas (total) = Realizadas + Em andamento + Futuras + No-show + A registrar + Canceladas.
   // Todos os baldes aparecem para a soma sempre fechar com o total.
   const kpiDefs = [
-    {n:tot.agendadas, t:`Agendadas · ${RANGE_LABEL[state.range]}`, s:"Agendadas", c:"var(--sched)", k:"ALL"},
+    {n:tot.agendadas, t:`Agendadas · ${rangeLabel(state.range)}`, s:"Agendadas", c:"var(--sched)", k:"ALL"},
     {n:tot.realizadas, t:"Realizadas", s:"Realizadas", c:"var(--done)", k:"REALIZADA"},
     {n:tot.agora, t:"Em andamento", s:"Em andamento", c:"var(--now)", k:"AGORA"},
     {n:tot.futuras, t:"Futuras", s:"Futuras", c:"var(--next)", k:"FUTURA"},
@@ -702,7 +731,7 @@ function render(dados){
         else { // FUTURA
           cor="var(--sched)";
           // "em X min" só faz sentido hoje; amanhã mostra "Agendada"
-          if(state.range==='hoje' && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
+          if(ehHojeSel() && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
           else { tag="Agendada"; }
         }
         // mais clean: nome do contato vinculado (cai no título só se não houver contato)
@@ -721,7 +750,7 @@ function render(dados){
       }).join('');
     }
     const dens = nLinhas >= 9 ? ' grade' : (nLinhas >= 7 ? ' dense' : (nLinhas >= 5 ? ' compact' : ''));
-    const vazio = state.range==='hoje' ? 'Nenhuma reunião hoje' : `Nenhuma reunião ${RANGE_LABEL[state.range]}`;
+    const vazio = ehHojeSel() ? 'Nenhuma reunião hoje' : `Nenhuma reunião ${rangeLabel(state.range)}`;
     const agendaHTML = linhas
       ? `<div class="agenda${dens}">${linhas}</div>`
       : `<div class="agenda empty-day">${vazio}</div>`;
@@ -805,7 +834,7 @@ function abrirModal(key, titulo, cor){
   }));
   itens.sort((a,b)=> a.m.inicio - b.m.inicio);
 
-  const multiDia = state.range!=='hoje';
+  const multiDia = !ehHojeSel();
   const lista = document.getElementById('modalList');
   if(!itens.length){
     lista.innerHTML = `<div class="modal-empty">Nenhuma reunião neste status.</div>`;

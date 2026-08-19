@@ -119,6 +119,13 @@ function janelaPara(range) {
   // 00:00 BRT (de uma data) em ms UTC: meia-noite UTC menos o offset
   const inicioDia = (yy, mm, dd) => Date.UTC(yy, mm, dd, 0, 0, 0, 0) - BRT_OFFSET_MIN * 60000;
 
+  // data específica (YYYY-MM-DD) -> janela de 1 dia (usado pelas abas de dia da semana)
+  const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(range || "");
+  if (md) {
+    const dia0 = inicioDia(+md[1], +md[2] - 1, +md[3]);
+    return { inicio: dia0, fim: dia0 + DIA_MS - 1 };
+  }
+
   const hoje0 = inicioDia(y, m, d);
   switch (range) {
     case "ontem":
@@ -541,9 +548,10 @@ export default async function handler(req, res) {
   // ?debug=1 devolve o erro completo em HTTP 200 (facilita diagnóstico externo).
   const debug = /[?&]debug=1\b/.test(req.url || "");
 
-  // ?range=hoje|amanha|semana|mes (padrão hoje)
-  const rangeMatch = /[?&]range=([a-z]+)/.exec(req.url || "");
-  const range = RANGES.includes(rangeMatch?.[1]) ? rangeMatch[1] : "hoje";
+  // ?range=semana|mes  OU  ?range=YYYY-MM-DD (dia específico; abas seg-sex). Padrão: hoje.
+  const rangeMatch = /[?&]range=(\d{4}-\d{2}-\d{2}|[a-z]+)/.exec(req.url || "");
+  const rq = rangeMatch?.[1];
+  const range = (RANGES.includes(rq) || /^\d{4}-\d{2}-\d{2}$/.test(rq || "")) ? rq : "hoje";
 
   try {
     const janela = janelaPara(range);
@@ -575,7 +583,7 @@ export default async function handler(req, res) {
     // Histórico do dia: registra tudo que foi visto hoje (piggyback no tráfego
     // da TV, que bate aqui a cada 30s). Reuniões que somem depois = excluídas/
     // reagendadas. Best-effort: se o KV falhar, o painel segue normal.
-    if (range === "hoje" && kvReady()) {
+    if ((range === "hoje" || range === dataBRT()) && kvReady()) {
       try {
         const dia = dataBRT();
         const key = `visto:${dia}`;
