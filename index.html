@@ -319,9 +319,7 @@
       <button class="tab" data-seg="B2C">B2C</button>
     </nav>
     <nav class="tabs periodo" id="rangeTabs">
-      <!-- botões dos dias úteis (seg-sex) da semana atual são injetados por JS aqui -->
-      <button class="tab" data-range="semana">Semana</button>
-      <button class="tab" data-range="mes">Mês</button>
+      <!-- botões dos dias úteis (seg-sex) da semana atual são injetados por JS -->
     </nav>
   </div>
   <div class="clock">
@@ -596,19 +594,18 @@ const state = {
 if(!['B2B','B2C'].includes(state.seg)) state.seg='B2B';
 // período válido = semana | mes | data seg-sex desta semana; senão hoje (ou 1ª útil se fim de semana)
 const DIAS_UTEIS_ISO = DIAS_UTEIS.map(x=>x.iso);
-if(!['semana','mes'].includes(state.range) && !DIAS_UTEIS_ISO.includes(state.range)){
+if(!DIAS_UTEIS_ISO.includes(state.range)){
   state.range = DIAS_UTEIS_ISO.includes(HOJE_ISO) ? HOJE_ISO : DIAS_UTEIS_ISO[0];
 }
 
 // injeta as abas dos dias úteis antes de Semana/Mês
 (function(){
   const nav = document.getElementById('rangeTabs');
-  const antes = nav.querySelector('[data-range="semana"]');
   DIAS_UTEIS.forEach(d=>{
     const b=document.createElement('button'); b.className='tab'; b.dataset.range=d.iso;
     b.textContent = d.label;
     if(d.iso===HOJE_ISO) b.title='Hoje';
-    nav.insertBefore(b, antes);
+    nav.appendChild(b);
   });
 })();
 
