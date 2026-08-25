@@ -28,7 +28,7 @@ const CORES = ["#ff6a1a", "#5aa9ff", "#ffa24d", "#46d17f"];
 // Blocos sem título (nome vazio). Gabriel Alves removido. 6 novos closers
 // distribuídos de forma balanceada.
 const SQUADS_B2B = [
-  { nome: "", lider: "80454576", membros: ["80454586", "86859895", "95811085", "84249251"] },  // Eduardo Vince, Rafael Teixeira, Mateus Mariano, +Wagner, +Tércio
+  { nome: "", lider: "80454576", membros: ["80454586", "86859895"] },                          // Eduardo Vince, Rafael Teixeira, Mateus Mariano (Wagner e Tércio removidos)
   { nome: "", lider: "80454584", membros: ["80454588", "92333469", "85002012", "81033487"] },  // Cesar Filho, João Marins, Rafael O. Alves, +Bruna, +Gustavo
   { nome: "", lider: "79760744", membros: ["80651489", "92704130", "89632472"] },              // Diego Conceição, Catarina, Talita, +Maria Eduarda
   { nome: "", lider: "80454585", membros: ["87159365", "94028856", "79760745"] },              // Leandro, João Lucas Backmann, Felippe, +Thiago Berto
