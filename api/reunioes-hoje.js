@@ -45,11 +45,9 @@ SQUADS_B2B.forEach((s, i) => {
 // B2C resolvido em 2026-07-13 a partir da lista enviada pelo time.
 const DEFAULT_B2C = [
   "79760676", // Amanda de Oliveira
-  "79760746", // Mayda Quadros
   "88628309", // João Paulo da Silveira Araújo
   "89632494", // Willker Santos Belous
   "88628313", // Gabrielly Milani da Silva
-  "88200239", // Luiza Rodriguez
 ];
 
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
