@@ -106,6 +106,12 @@
   /* período: fonte um pouco menor e destaque azul (diferencia do segmento) */
   .tabs.periodo .tab{font-size:17px;padding:7px 16px;letter-spacing:.06em}
   .tabs.periodo .tab.active{background:var(--ink);color:#0b0b0e}
+  /* dropdown "Semana" (semanas futuras) */
+  .wk-wrap{position:relative}
+  .wk-menu{position:absolute;top:calc(100% + 6px);right:0;z-index:30;display:none;flex-direction:column;gap:2px;background:#14141a;border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:6px;min-width:150px;box-shadow:0 10px 30px rgba(0,0,0,.5)}
+  .wk-wrap.open .wk-menu{display:flex}
+  .wk-item{font-family:var(--inter);font-size:14px;font-weight:600;color:#e8e8ec;background:transparent;border:0;border-radius:8px;padding:8px 12px;text-align:left;white-space:nowrap;cursor:pointer}
+  .wk-item:hover{background:rgba(90,169,255,.16);color:var(--blue)}
   .clock .time{
     font-family:var(--num);font-weight:700;font-size:46px;line-height:.9;
     font-variant-numeric:tabular-nums;letter-spacing:.02em;
@@ -577,8 +583,17 @@ const DIAS_SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sá
 function segundaDaSemana(base){ const d=new Date(base); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); return d; }
 // dias úteis (seg..sex) da semana atual: [{iso,label}]
 const DIAS_UTEIS = Array.from({length:5}, (_,i)=>{ const d=segundaDaSemana(new Date()); d.setDate(d.getDate()+i); return {iso:isoDia(d), label:['Segunda','Terça','Quarta','Quinta','Sexta'][i]}; });
-const ehData = v => /^\d{4}-\d{2}-\d{2}$/.test(v);
+const ddmm = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+const ddmmIso = s => { const [ , m, d] = s.split('-'); return `${d}/${m}`; };
+const ehSemana = v => (v||'').includes('~');   // token INICIO~FIM (semana futura)
+// próximas 6 semanas (seg..sex), a partir da semana que vem
+const SEMANAS_FUT = Array.from({length:6},(_,i)=>{
+  const mon=segundaDaSemana(new Date()); mon.setDate(mon.getDate()+7*(i+1));
+  const fri=new Date(mon); fri.setDate(fri.getDate()+4);
+  return {tok:`${isoDia(mon)}~${isoDia(fri)}`, label:`${ddmm(mon)} a ${ddmm(fri)}`};
+});
 function rangeLabel(r){
+  if(ehSemana(r)){ const [a,b]=r.split('~'); return `${ddmmIso(a)} a ${ddmmIso(b)}`; }
   if(r==='semana') return 'esta semana';
   if(r==='mes') return 'este mês';
   if(r===HOJE_ISO) return 'hoje';
@@ -592,13 +607,13 @@ const state = {
   range: (params.get('range')||'').toLowerCase(),
 };
 if(!['B2B','B2C'].includes(state.seg)) state.seg='B2B';
-// período válido = semana | mes | data seg-sex desta semana; senão hoje (ou 1ª útil se fim de semana)
+// período válido = dia seg-sex desta semana OU token de semana futura; senão hoje (1ª útil no fim de semana)
 const DIAS_UTEIS_ISO = DIAS_UTEIS.map(x=>x.iso);
-if(!DIAS_UTEIS_ISO.includes(state.range)){
+if(!DIAS_UTEIS_ISO.includes(state.range) && !ehSemana(state.range)){
   state.range = DIAS_UTEIS_ISO.includes(HOJE_ISO) ? HOJE_ISO : DIAS_UTEIS_ISO[0];
 }
 
-// injeta as abas dos dias úteis antes de Semana/Mês
+// injeta as abas dos dias úteis + o dropdown "Semana" (semanas futuras)
 (function(){
   const nav = document.getElementById('rangeTabs');
   DIAS_UTEIS.forEach(d=>{
@@ -606,6 +621,24 @@ if(!DIAS_UTEIS_ISO.includes(state.range)){
     b.textContent = d.label;
     if(d.iso===HOJE_ISO) b.title='Hoje';
     nav.appendChild(b);
+  });
+  // dropdown Semana
+  const wrap=document.createElement('div'); wrap.className='wk-wrap';
+  const btn=document.createElement('button'); btn.className='tab'; btn.id='wkBtn'; btn.textContent='Semana ▾';
+  const menu=document.createElement('div'); menu.className='wk-menu'; menu.id='wkMenu';
+  menu.innerHTML = SEMANAS_FUT.map(s=>`<button class="wk-item" data-range="${s.tok}">${s.label}</button>`).join('');
+  wrap.append(btn, menu);
+  nav.appendChild(wrap);
+  btn.addEventListener('click', e=>{ e.stopPropagation(); wrap.classList.toggle('open'); });
+  document.addEventListener('click', ()=>wrap.classList.remove('open'));
+  menu.querySelectorAll('.wk-item').forEach(it=>{
+    it.addEventListener('click', ()=>{
+      wrap.classList.remove('open');
+      if(state.range===it.dataset.range) return;
+      state.range=it.dataset.range;
+      const u=new URL(location); u.searchParams.set('range', state.range); history.replaceState({}, '', u);
+      atualizar();
+    });
   });
 })();
 
@@ -630,6 +663,9 @@ function render(dados){
   // atualiza abas (segmento + período) e subtítulo
   document.querySelectorAll('#segTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.seg===state.seg));
   document.querySelectorAll('#rangeTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.range===state.range));
+  // botão "Semana": ativo quando uma semana futura está selecionada; mostra o intervalo
+  const wkBtn=document.getElementById('wkBtn');
+  if(wkBtn){ const on=ehSemana(state.range); wkBtn.classList.toggle('active', on); wkBtn.textContent = on ? rangeLabel(state.range) : 'Semana ▾'; }
   document.getElementById('brandSub').textContent = `Closers ${state.seg} · ${rangeLabel(state.range)}`;
 
   // KPIs agregados do segmento
@@ -687,7 +723,7 @@ function render(dados){
     const emAndamento = !!r.emAndamento;
 
     // Semana/Mês: resumo por dia (contagem). Hoje/Amanhã: lista detalhada.
-    const resumoPorDia = (state.range==="semana" || state.range==="mes");
+    const resumoPorDia = ehSemana(state.range) || state.range==="semana" || state.range==="mes";
     let linhas, nLinhas;
     if(resumoPorDia){
       const dias = agrupaPorDia(c.reunioes, agora);
@@ -900,6 +936,7 @@ document.querySelectorAll('#segTabs .tab').forEach(btn=>{
 // abas de PERÍODO: muda a janela no backend, então re-busca (?range=...)
 document.querySelectorAll('#rangeTabs .tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
+    if(!btn.dataset.range) return;            // ex.: botão "Semana" (dropdown), tratado à parte
     if(state.range===btn.dataset.range) return;
     state.range = btn.dataset.range;
     const u = new URL(location); u.searchParams.set('range', state.range);

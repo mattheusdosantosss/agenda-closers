@@ -117,6 +117,11 @@ function janelaPara(range) {
   // 00:00 BRT (de uma data) em ms UTC: meia-noite UTC menos o offset
   const inicioDia = (yy, mm, dd) => Date.UTC(yy, mm, dd, 0, 0, 0, 0) - BRT_OFFSET_MIN * 60000;
 
+  // intervalo INICIO~FIM (YYYY-MM-DD~YYYY-MM-DD) -> janela seg..sex de uma semana futura
+  const wk = /^(\d{4})-(\d{2})-(\d{2})~(\d{4})-(\d{2})-(\d{2})$/.exec(range || "");
+  if (wk) {
+    return { inicio: inicioDia(+wk[1], +wk[2] - 1, +wk[3]), fim: inicioDia(+wk[4], +wk[5] - 1, +wk[6]) + DIA_MS - 1 };
+  }
   // data específica (YYYY-MM-DD) -> janela de 1 dia (usado pelas abas de dia da semana)
   const md = /^(\d{4})-(\d{2})-(\d{2})$/.exec(range || "");
   if (md) {
@@ -547,9 +552,9 @@ export default async function handler(req, res) {
   const debug = /[?&]debug=1\b/.test(req.url || "");
 
   // ?range=semana|mes  OU  ?range=YYYY-MM-DD (dia específico; abas seg-sex). Padrão: hoje.
-  const rangeMatch = /[?&]range=(\d{4}-\d{2}-\d{2}|[a-z]+)/.exec(req.url || "");
+  const rangeMatch = /[?&]range=(\d{4}-\d{2}-\d{2}(?:~\d{4}-\d{2}-\d{2})?|[a-z]+)/.exec(req.url || "");
   const rq = rangeMatch?.[1];
-  const range = (RANGES.includes(rq) || /^\d{4}-\d{2}-\d{2}$/.test(rq || "")) ? rq : "hoje";
+  const range = (RANGES.includes(rq) || /^\d{4}-\d{2}-\d{2}(~\d{4}-\d{2}-\d{2})?$/.test(rq || "")) ? rq : "hoje";
 
   try {
     const janela = janelaPara(range);
