@@ -121,13 +121,13 @@
   /* ---------- KPIs (barras de métrica) ---------- */
   .kpis{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 30px;flex:0 0 auto;flex-wrap:wrap}
   .mbar{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-  .mcell{padding:9px 18px;text-align:center;min-width:78px;cursor:pointer}
+  .mcell{padding:6px 13px;text-align:center;min-width:62px;cursor:pointer}
   .mcell+.mcell{border-left:1px solid var(--line)}
   .mcell:hover{background:rgba(255,255,255,.03)}
-  .mcell .v{font-family:var(--num);font-weight:700;font-size:26px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:7px}
-  .mcell .v i{width:8px;height:8px;border-radius:3px}
+  .mcell .v{font-family:var(--num);font-weight:700;font-size:20px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:6px}
+  .mcell .v i{width:7px;height:7px;border-radius:2px}
   .mcell .v b{font-weight:700}
-  .mcell span{display:block;font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+  .mcell span{display:block;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
   .mcell.k .v{color:var(--c)}
   .mbar.types .mcell{cursor:default}
 
@@ -197,23 +197,22 @@
   .appt.live .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--now);animation:pulse 1.6s infinite}
   .agenda.empty-day{align-items:center;justify-content:center;color:var(--muted);font-size:15px}
 
-  /* ---------- CÉLULA (linha de reunião B2C, estilo Apple 2 linhas) ---------- */
-  .cell{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:11px;padding:10px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
-  .cell+.cell::before{content:"";position:absolute;left:71px;right:8px;top:0;height:1px;background:var(--line)}
-  .cell .hr{font-family:var(--inter);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+  /* ---------- CÉLULA (linha de reunião B2C) — horário+status à esquerda, nome+tipo à direita ---------- */
+  .cell{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
+  .cell+.cell::before{content:"";position:absolute;left:8px;right:8px;top:0;height:1px;background:var(--line)}
+  .cell .lead{text-align:right;min-width:0}
+  .cell .hr{font-family:var(--inter);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:var(--muted);line-height:1.1}
+  .cell .due{font-size:11px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .cell .body{min-width:0}
   .cell .title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
   .cell .meta{display:flex;align-items:center;gap:8px;margin-top:4px;min-width:0}
   .cell .meta .pf{font-size:12px;color:#ffcf99;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cell .right{display:flex;align-items:center;gap:9px;justify-self:end}
-  .cell .due{font-size:12px;color:var(--muted);white-space:nowrap}
-  .cell .acc{width:9px;height:9px;border-radius:50%;background:transparent}
   .cell.now{background:rgba(255,106,26,.10)}
-  .cell.now .hr{color:var(--now)} .cell.now .acc{background:var(--now);box-shadow:0 0 0 4px rgba(255,106,0,.18)} .cell.now .due{color:var(--now);font-weight:700}
-  .cell.re .hr{color:var(--done)} .cell.re .acc{background:var(--done)} .cell.re .due{color:var(--done)}
+  .cell.now .hr,.cell.now .due{color:var(--now)} .cell.now .due{font-weight:700}
+  .cell.re .hr,.cell.re .due{color:var(--done)}
   .cell.reg .due{color:var(--muted)}
-  .cell.reprog .acc{background:var(--blue)} .cell.reprog .due{color:var(--blue)}
-  .cell.ns .hr{color:var(--miss)} .cell.ns .acc{background:var(--miss)} .cell.ns .due{color:var(--miss)}
+  .cell.reprog .hr,.cell.reprog .due{color:var(--blue)}
+  .cell.ns .hr,.cell.ns .due{color:var(--miss)}
   .cell.cancel .title{text-decoration:line-through;color:var(--dim)}
   /* etiqueta de TIPO — neutra + pontinho de cor */
   .tp{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:6px;white-space:nowrap;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line)}
@@ -719,12 +718,9 @@ function render(dados){
   const kpiDefs = [
     {n:tot.agendadas, t:`Agendadas · ${rangeLabel(state.range)}`, s:"Agendadas", c:"var(--sched)", k:"ALL"},
     {n:tot.realizadas, t:"Realizadas", s:"Realizadas", c:"var(--done)", k:"REALIZADA"},
-    {n:tot.agora, t:"Em andamento", s:"Em andamento", c:"var(--now)", k:"AGORA"},
+    {n:tot.agora, t:"Agora", s:"Agora", c:"var(--now)", k:"AGORA"},
     {n:tot.futuras, t:"Futuras", s:"Futuras", c:"var(--next)", k:"FUTURA"},
     {n:tot.perdidas, t:"No-show", s:"No-show", c:"var(--miss)", k:"PERDIDA"},
-    {n:tot.pendentes, t:"A registrar", s:"A registrar", c:"var(--muted)", k:"PENDENTE"},
-    {n:tot.reprogramadas, t:"Reprogramadas", s:"Reprog.", c:"var(--blue)", k:"REPROGRAMADA"},
-    {n:tot.canceladas, t:"Canceladas", s:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
   const kpis = document.getElementById('kpis');
   kpis.className = 'kpis';
@@ -814,13 +810,11 @@ function render(dados){
         const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const perfil = (m.perfil||'').trim();
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
-        const dueTxt = due ? `<span class="due">${due}</span>` : '';
         return `<a class="cell ${cls}"${href}>
-          <div class="hr">${fmtHora(m.inicio)}</div>
+          <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
           <div class="body"><div class="title">${nome}</div>
             <div class="meta">${tipoChip(m)}${perfil?`<span class="pf">${perfil}</span>`:''}</div>
           </div>
-          <div class="right">${dueTxt}<span class="acc"></span></div>
         </a>`;
       }).join('');
       const mais = ordenadas.length>MAXB2C ? `<div class="more">+${ordenadas.length-MAXB2C} mais tarde</div>` : '';
