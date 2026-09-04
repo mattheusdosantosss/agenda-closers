@@ -128,7 +128,6 @@
   .mcell .v i{width:7px;height:7px;border-radius:2px}
   .mcell .v b{font-weight:700}
   .mcell span{display:block;font-size:9px;color:var(--muted);margin-top:4px;letter-spacing:.05em;text-transform:uppercase;font-weight:600}
-  .mcell.k .v{color:var(--c)}
   .mbar.types .mcell{cursor:default}
 
   /* ---------- GRID DE CLOSERS ---------- */
@@ -728,7 +727,7 @@ function render(dados){
   // barra esquerda: KPIs de status (clicáveis -> abre o pop-up)
   const left = document.createElement('div'); left.className='mbar';
   kpiDefs.forEach(k=>{
-    const cell = el(`<div class="mcell k" style="--c:${k.c}" title="Ver reuniões"><div class="v">${k.n}</div><span>${k.s}</span></div>`);
+    const cell = el(`<div class="mcell k" title="Ver reuniões"><div class="v"><i style="background:${k.c}"></i>${k.n}</div><span>${k.s}</span></div>`);
     cell.addEventListener('click', ()=> abrirModal(k.k, k.t, k.c));
     left.appendChild(cell);
   });
