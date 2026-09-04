@@ -338,7 +338,7 @@
 
 <main class="grid" id="grid"></main>
 
-<footer id="foot">Atualiza automaticamente a cada <b>30s</b> · dados de exemplo</footer>
+<footer id="foot">Atualiza automaticamente a cada <b>60s</b> · dados de exemplo</footer>
 
 <!-- pop-up: reuniões de um status (aberto ao clicar num KPI) -->
 <div id="modal" class="modal" hidden>
@@ -415,7 +415,7 @@ function pintarRodape(){
     const atrasado = secs > 75 ? ' · <b style="color:var(--miss)">sincronização atrasada</b>' : '';
     sync = ` · sincronizado <b>${hh}</b> (há ${secs}s)${atrasado}`;
   }
-  foot.innerHTML = `Atualiza a cada <b>30s</b> · ${fonteAtual}${sync}`;
+  foot.innerHTML = `Atualiza a cada <b>60s</b> · ${fonteAtual}${sync}`;
 }
 
 /* ---------- Dados de exemplo (âncorados na hora atual) ---------- */
@@ -920,7 +920,7 @@ async function atualizar(){
 // relógio a cada segundo; re-render (recalcula "agora") a cada segundo com cache;
 // atualiza o "há Xs" do rodapé; busca nova no backend a cada 30s
 setInterval(()=>{ tickRelogio(); pintarRodape(); if(cache) render(cache); }, 1000);
-setInterval(atualizar, 30000);
+setInterval(atualizar, 60000); // 60s: metade das invocações de função na Vercel (TV não precisa de 30s)
 
 // abas de SEGMENTO: filtro no cliente (só re-renderiza) e grava na URL
 // (cada TV pode abrir fixa em ?seg=b2b ou ?seg=b2c e nunca precisar de clique)

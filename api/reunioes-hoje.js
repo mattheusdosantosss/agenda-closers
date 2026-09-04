@@ -45,6 +45,7 @@ SQUADS_B2B.forEach((s, i) => {
 // B2C resolvido em 2026-07-13 a partir da lista enviada pelo time.
 const DEFAULT_B2C = [
   "79760676", // Amanda de Oliveira
+  "79760746", // Mayda Quadros
   "88628309", // João Paulo da Silveira Araújo
   "89632494", // Willker Santos Belous
   "88628313", // Gabrielly Milani da Silva
@@ -397,7 +398,8 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   const ids = meetings.map((m) => m.id).filter(Boolean);
   const [contatos, perfis] = await Promise.all([
     contatosDasMeetings(token, ids),
-    perfisDasMeetings(token, ids),
+    // perfil só é exibido no B2C -> não gasta chamadas de deal no B2B
+    segmento === "B2C" ? perfisDasMeetings(token, ids) : Promise.resolve(new Map()),
   ]);
 
   const dpo = (owner) => {
