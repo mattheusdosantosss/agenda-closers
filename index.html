@@ -118,19 +118,18 @@
   }
   .clock .date{color:var(--muted);font-size:13px;text-transform:capitalize;font-weight:500;margin-top:6px}
 
-  /* ---------- KPIs ---------- */
-  .kpis{
-    display:grid;grid-template-columns:repeat(8,1fr);gap:10px;
-    padding:12px 30px;flex:0 0 auto;
-  }
-  .kpi{
-    background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:11px 16px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;
-    box-shadow:var(--shadow-sm);
-  }
-  .kpi::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--c)}
-  .kpi .big{font-family:var(--num);font-weight:700;font-size:46px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
-  .kpi .lbl{color:var(--muted);font-size:11px;letter-spacing:.12em;text-transform:uppercase;font-weight:600}
+  /* ---------- KPIs (barras de métrica) ---------- */
+  .kpis{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:12px 30px;flex:0 0 auto;flex-wrap:wrap}
+  .mbar{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .mcell{padding:9px 18px;text-align:center;min-width:78px;cursor:pointer}
+  .mcell+.mcell{border-left:1px solid var(--line)}
+  .mcell:hover{background:rgba(255,255,255,.03)}
+  .mcell .v{font-family:var(--num);font-weight:700;font-size:26px;line-height:1;color:var(--ink);font-variant-numeric:tabular-nums;display:inline-flex;align-items:center;gap:7px}
+  .mcell .v i{width:8px;height:8px;border-radius:3px}
+  .mcell .v b{font-weight:700}
+  .mcell span{display:block;font-size:10px;color:var(--muted);margin-top:5px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+  .mcell.k .v{color:var(--c)}
+  .mbar.types .mcell{cursor:default}
 
   /* ---------- GRID DE CLOSERS ---------- */
   .grid{
@@ -164,10 +163,12 @@
   .badge.free .b-dot{background:var(--muted)}
 
   /* mini stats */
-  .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
-  .stat{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:11px;padding:9px 6px;text-align:center}
-  .stat .n{font-family:var(--num);font-weight:700;font-size:36px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
-  .stat .t{color:var(--muted);font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-top:5px}
+  .stats{display:flex;background:rgba(255,255,255,.02);border:1px solid var(--line);border-radius:12px;margin-bottom:12px}
+  .stat{flex:1;text-align:center;padding:10px 4px}
+  .stat+.stat{border-left:1px solid var(--line)}
+  .stat .n{font-family:var(--num);font-weight:700;font-size:26px;line-height:.9;color:var(--c);font-variant-numeric:tabular-nums}
+  .stat.z .n{color:var(--dim)}
+  .stat .t{color:var(--muted);font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;margin-top:5px}
 
   /* agenda do dia (todas as reuniões do closer) — preenche o card, sem scroll */
   .agenda{flex:1 1 auto;margin-top:16px;display:flex;flex-direction:column;gap:8px;overflow:hidden;min-height:0}
@@ -195,6 +196,30 @@
   .appt.live .tag{display:flex;align-items:center;gap:7px}
   .appt.live .tag::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--now);animation:pulse 1.6s infinite}
   .agenda.empty-day{align-items:center;justify-content:center;color:var(--muted);font-size:15px}
+
+  /* ---------- CÉLULA (linha de reunião B2C, estilo Apple 2 linhas) ---------- */
+  .cell{display:grid;grid-template-columns:52px 1fr auto;align-items:center;gap:11px;padding:10px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
+  .cell+.cell::before{content:"";position:absolute;left:71px;right:8px;top:0;height:1px;background:var(--line)}
+  .cell .hr{font-family:var(--inter);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+  .cell .body{min-width:0}
+  .cell .title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+  .cell .meta{display:flex;align-items:center;gap:8px;margin-top:4px;min-width:0}
+  .cell .meta .pf{font-size:12px;color:#ffcf99;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cell .right{display:flex;align-items:center;gap:9px;justify-self:end}
+  .cell .due{font-size:12px;color:var(--muted);white-space:nowrap}
+  .cell .acc{width:9px;height:9px;border-radius:50%;background:transparent}
+  .cell.now{background:rgba(255,106,26,.10)}
+  .cell.now .hr{color:var(--now)} .cell.now .acc{background:var(--now);box-shadow:0 0 0 4px rgba(255,106,0,.18)} .cell.now .due{color:var(--now);font-weight:700}
+  .cell.re .hr{color:var(--done)} .cell.re .acc{background:var(--done)} .cell.re .due{color:var(--done)}
+  .cell.reg .due{color:var(--muted)}
+  .cell.reprog .acc{background:var(--blue)} .cell.reprog .due{color:var(--blue)}
+  .cell.ns .hr{color:var(--miss)} .cell.ns .acc{background:var(--miss)} .cell.ns .due{color:var(--miss)}
+  .cell.cancel .title{text-decoration:line-through;color:var(--dim)}
+  /* etiqueta de TIPO — neutra + pontinho de cor */
+  .tp{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;letter-spacing:.02em;padding:2px 8px;border-radius:6px;white-space:nowrap;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line)}
+  .tp i{width:6px;height:6px;border-radius:50%}
+  .agenda.cells{gap:0}
+  .agenda.cells .more{font-size:12px;color:var(--dim);padding:8px 8px 2px 20px}
 
   /* densidade: 5–6 reuniões (compacto) — some a hora de término, fontes menores */
   .agenda.compact{gap:6px}
@@ -482,6 +507,9 @@ function gerarDadosDemo(){
   // perfil (fictício) nas reuniões B2C do demo, p/ visualizar a coluna
   const PERFIS=["Iniciante","Profissionalize-se","Escala"];
   let pi=0; b2c.forEach(c=>c.reunioes.forEach((m,k)=>{ if(k%2===0) m.perfil=PERFIS[pi++%PERFIS.length]; }));
+  // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
+  const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
+  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); }));
 
   return [
     ...b2b.map(c => ({...c, segmento:"B2B"})),
@@ -642,6 +670,15 @@ if(!DIAS_UTEIS_ISO.includes(state.range) && !ehSemana(state.range)){
   });
 })();
 
+// tipos de reunião (categoria de negócio) — rótulo + cor do pontinho
+const TIPO_LB ={venda:"Venda",rel:"Relacionamento",follow:"Follow-up",sem:"Sem tipo",outro:"Outro"};
+const TIPO_COR={venda:"#ffb703",rel:"#5aa9ff",follow:"#ff8f6b",sem:"#8a8a93",outro:"#8a8a93"};
+function tipoChip(m){
+  const k = m.tp || 'sem';
+  const org = m.org ? ' · '+m.org : '';
+  return `<span class="tp"><i style="background:${TIPO_COR[k]||'#8a8a93'}"></i>${(TIPO_LB[k]||'Outro')}${org}</span>`;
+}
+
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
 function colsFor(n){
   const map={1:1,2:2,3:3,4:2,5:3,6:3,7:4,8:4,9:3,10:5,11:4,12:4};
@@ -689,17 +726,27 @@ function render(dados){
     {n:tot.reprogramadas, t:"Reprogramadas", s:"Reprog.", c:"var(--blue)", k:"REPROGRAMADA"},
     {n:tot.canceladas, t:"Canceladas", s:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
-  const chips = true; // métricas em chips compactos nos dois segmentos
   const kpis = document.getElementById('kpis');
-  kpis.className = chips ? 'kpis chips' : 'kpis';
+  kpis.className = 'kpis';
   kpis.innerHTML='';
+  // barra esquerda: KPIs de status (clicáveis -> abre o pop-up)
+  const left = document.createElement('div'); left.className='mbar';
   kpiDefs.forEach(k=>{
-    const node = chips
-      ? el(`<div class="chip" style="--c:${k.c}" title="Ver reuniões"><b>${k.n}</b><span>${k.s}</span></div>`)
-      : el(`<div class="kpi" style="--c:${k.c}" title="Ver reuniões"><div class="big">${k.n}</div><div class="lbl">${k.t}</div></div>`);
-    node.addEventListener('click', ()=> abrirModal(k.k, k.t, k.c));
-    kpis.appendChild(node);
+    const cell = el(`<div class="mcell k" style="--c:${k.c}" title="Ver reuniões"><div class="v">${k.n}</div><span>${k.s}</span></div>`);
+    cell.addEventListener('click', ()=> abrirModal(k.k, k.t, k.c));
+    left.appendChild(cell);
   });
+  kpis.appendChild(left);
+  // barra direita: contador por TIPO de reunião (só B2C)
+  if(state.seg==='B2C'){
+    const cont={};
+    doSeg.forEach(c=>c.reunioes.forEach(m=>{ const k=m.tp||'sem'; cont[k]=(cont[k]||0)+1; }));
+    const right=document.createElement('div'); right.className='mbar types';
+    Object.keys(TIPO_LB).filter(k=>cont[k]).forEach(k=>{
+      right.appendChild(el(`<div class="mcell"><div class="v"><i style="background:${TIPO_COR[k]}"></i><b>${cont[k]}</b></div><span>${TIPO_LB[k]}</span></div>`));
+    });
+    if(right.children.length) kpis.appendChild(right);
+  }
 
   const grid = document.getElementById('grid');
   grid.innerHTML='';
@@ -713,12 +760,10 @@ function render(dados){
     return;
   }
 
-  // Cards — grade adaptativa ao número de closers do segmento
+  // Cards do B2C: todos numa linha só, esticando pra preencher a altura da tela
   grid.className = 'grid';
-  const cols = colsFor(resumos.length);
-  const rows = Math.max(1, Math.ceil(resumos.length/cols));
-  grid.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
-  grid.style.gridTemplateRows = `repeat(${rows},minmax(0,1fr))`;
+  grid.style.gridTemplateColumns = `repeat(${Math.max(1,resumos.length)},minmax(0,1fr))`;
+  grid.style.gridTemplateRows = 'minmax(0,1fr)';
   resumos.forEach(({c,r})=>{
     const emAndamento = !!r.emAndamento;
 
@@ -748,41 +793,40 @@ function render(dados){
         </div>`;
       }).join('');
     } else {
-      // lista detalhada (Hoje / Amanhã), ordenada por horário
-      const reunioesOrdenadas = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
-      nLinhas = reunioesOrdenadas.length;
+      // lista detalhada (Hoje / Amanhã) — célula 2 linhas: nome | (tipo + perfil) | status à direita
+      const ordenadas = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
+      nLinhas = ordenadas.length;
+      const MAXB2C = 10;
       let jaMarcouProxima=false;
-      linhas = reunioesOrdenadas.map(m=>{
+      const cells = ordenadas.slice(0,MAXB2C).map(m=>{
         const s = statusReuniao(m, agora);
-        let cor, tag, cls="";
-        if(s==="AGORA"){ cor="var(--now)"; tag="Agora"; cls="live"; }
-        else if(s==="REALIZADA"){ cor="var(--done)"; tag="Realizada"; cls="past"; }
-        else if(s==="PERDIDA"){ cor="var(--miss)"; tag="No-show"; cls="past"; }
-        else if(s==="CANCELADA"){ cor="var(--dim)"; tag="Cancelada"; cls="past cancel"; }
-        else if(s==="REPROGRAMADA"){ cor="var(--blue)"; tag="Reprogramada"; cls="past"; }
-        else if(s==="PENDENTE"){ cor="var(--muted)"; tag="A registrar"; cls=""; }
-        else { // FUTURA
-          cor="var(--sched)";
-          // "em X min" só faz sentido hoje; amanhã mostra "Agendada"
-          if(ehHojeSel() && !emAndamento && !jaMarcouProxima){ tag=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
-          else { tag="Agendada"; }
+        let cls, due;
+        if(s==="AGORA"){ cls="now"; due="Agora"; }
+        else if(s==="REALIZADA"){ cls="re"; due="Realizada"; }
+        else if(s==="PERDIDA"){ cls="ns"; due="No-show"; }
+        else if(s==="CANCELADA"){ cls="cancel"; due="Cancelada"; }
+        else if(s==="REPROGRAMADA"){ cls="reprog"; due="Reprogramada"; }
+        else if(s==="PENDENTE"){ cls="reg"; due="A registrar"; }
+        else { // FUTURA — "Agendada" é o padrão (fica só na cor); a próxima de hoje ganha "em X min"
+          cls=""; due="";
+          if(ehHojeSel() && !emAndamento && !jaMarcouProxima){ cls="now"; due=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
         }
-        // mais clean: nome do contato vinculado (cai no título só se não houver contato)
-        const nomeLinha = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
-        const emp = (m.empresa||'').trim();
+        const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const perfil = (m.perfil||'').trim();
-        const subLinha = (emp && emp!=='—') ? `<div class="c">${emp}</div>` : '';
-        const perfilCel = perfil ? `<span class="perfil">${perfil}</span>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
-        return `<a class="appt ${cls}" style="--c:${cor}"${href}>
-          <div class="time"><span class="ini">${fmtHora(m.inicio)}</span></div>
-          <div class="info"><div class="t">${nomeLinha}</div>${subLinha}</div>
-          ${perfilCel}
-          <div class="tag">${tag}</div>
+        const dueTxt = due ? `<span class="due">${due}</span>` : '';
+        return `<a class="cell ${cls}"${href}>
+          <div class="hr">${fmtHora(m.inicio)}</div>
+          <div class="body"><div class="title">${nome}</div>
+            <div class="meta">${tipoChip(m)}${perfil?`<span class="pf">${perfil}</span>`:''}</div>
+          </div>
+          <div class="right">${dueTxt}<span class="acc"></span></div>
         </a>`;
       }).join('');
+      const mais = ordenadas.length>MAXB2C ? `<div class="more">+${ordenadas.length-MAXB2C} mais tarde</div>` : '';
+      linhas = cells + mais;
     }
-    const dens = nLinhas >= 9 ? ' grade' : (nLinhas >= 7 ? ' dense' : (nLinhas >= 5 ? ' compact' : ''));
+    const dens = resumoPorDia ? (nLinhas >= 9 ? ' grade' : (nLinhas >= 7 ? ' dense' : (nLinhas >= 5 ? ' compact' : ''))) : ' cells';
     const vazio = ehHojeSel() ? 'Nenhuma reunião hoje' : `Nenhuma reunião ${rangeLabel(state.range)}`;
     const agendaHTML = linhas
       ? `<div class="agenda${dens}">${linhas}</div>`

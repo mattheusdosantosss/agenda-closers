@@ -88,6 +88,28 @@ function tipoBloqueadoB2C(tipo) {
   return B2C_TIPOS_EXCLUIR.some((x) => t.includes(x));
 }
 
+// hs_activity_type -> categoria de negócio { tp, org } (de-para real do portal PSA).
+//   "B2C | Reunião de Venda (marcada pelo SDR/Closer)" -> venda (SDR/Closer)
+//   "B2C | Marcação Merlin" / "Marcação IA"            -> venda (Merlin/IA)
+//   "Reunião de Relacionamento"                        -> rel
+//   "B2C | Reunião de FollowUp"                         -> follow
+//   (vazio) -> sem ; qualquer outro -> outro
+function categoriaTipo(tipo) {
+  const t = semAcento(tipo);
+  if (!t) return { tp: "sem", org: "" };
+  if (t.includes("relacionamento")) return { tp: "rel", org: "" };
+  if (t.includes("followup")) return { tp: "follow", org: "" };
+  if (t.includes("venda") || t.includes("marcacao")) {
+    let org = "";
+    if (t.includes("sdr")) org = "SDR";
+    else if (t.includes("closer")) org = "Closer";
+    else if (t.includes("merlin")) org = "Merlin";
+    else if (t.includes("ia")) org = "IA";
+    return { tp: "venda", org };
+  }
+  return { tp: "outro", org: "" };
+}
+
 function headers(token) {
   return { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
 }
@@ -425,7 +447,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
     const tipo = (p.hs_activity_type ?? "").trim();
     const oc = normalizaOutcome(p.hs_meeting_outcome);
     const iniDbg = parseHsDate(p.hs_meeting_start_time);
-    const bloqueado = segmento === "B2C" && tipoBloqueadoB2C(tipo);
+    const bloqueado = false; // B2C agora mostra TODOS os tipos (venda, relacionamento, follow-up, sem tipo...)
     if (d) {
       (d.itens = d.itens || []).push({
         h: iniDbg ? horaBRT(iniDbg) : "??:??",
@@ -452,6 +474,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       contato: ct.contato,
       empresa: segmento === "B2C" ? "—" : ct.empresa,
       tipo,
+      ...categoriaTipo(tipo), // tp (venda|rel|follow|sem|outro) + org (SDR|Closer|Merlin|IA)
       perfil: perfis.get(String(m.id)) || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
