@@ -28,10 +28,12 @@ const CORES = ["#ff6a1a", "#5aa9ff", "#ffa24d", "#46d17f"];
 // Blocos sem título (nome vazio). Gabriel Alves removido. 6 novos closers
 // distribuídos de forma balanceada.
 const SQUADS_B2B = [
-  { nome: "", lider: "80454576", membros: ["80454586", "86859895"] },                          // Eduardo Vince, Rafael Teixeira, Mateus Mariano (Wagner e Tércio removidos)
-  { nome: "", lider: "80454584", membros: ["80454588", "92333469", "85002012", "81033487"] },  // Cesar Filho, João Marins, Rafael O. Alves, +Bruna, +Gustavo
-  { nome: "", lider: "79760744", membros: ["80651489", "92704130", "89632472"] },              // Diego Conceição, Catarina, Talita, +Maria Eduarda
-  { nome: "", lider: "80454585", membros: ["87159365", "94028856", "79760745"] },              // Leandro, João Lucas Backmann, Felippe, +Thiago Berto
+  // Time Vince (líder Eduardo Vince)
+  { nome: "", lider: "80454576", membros: ["80454586", "92333469", "80454588", "80651489", "86859895", "85002012", "92704130"] },
+  //            Rafael Teixeira, Rafael Alves, João Gabriel, Catarina, Mateus Mariano, Bruna Machado, Talita
+  // Time Dani (líder Daniel Bento Sias)
+  { nome: "", lider: "80454577", membros: ["94028856", "89632472", "79760745", "96589066", "81033487", "87159365"] },
+  //            Felippe Freitas, Maria Eduarda, Thiago Berto, Nathalia Pereira, Gustavo, João Lucas
 ];
 // ordem achatada (líder, depois membros de cada squad) — usada na busca.
 const DEFAULT_B2B = SQUADS_B2B.flatMap((s) => [s.lider, ...s.membros]);
