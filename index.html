@@ -199,7 +199,8 @@
   /* ---------- CÉLULA (linha de reunião B2C) — horário+status à esquerda, nome+tipo à direita ---------- */
   .cell{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
   .cell .side{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-  .cell .temp{font-family:var(--inter);font-weight:600;font-size:11.5px;color:#ffd9a3;background:rgba(245,169,60,.15);border:1px solid rgba(245,169,60,.38);border-radius:8px;padding:2px 8px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+  .cell .temp{display:inline-flex;align-items:center;gap:5px;font-family:var(--inter);font-weight:600;font-size:11.5px;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:2px 8px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+  .cell .temp i{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .cell .ls{font-family:var(--inter);font-weight:700;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap;line-height:1.15}
   .cell .ls::before{content:"LS ";font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
   .cell+.cell::before{content:"";position:absolute;left:8px;right:8px;top:0;height:1px;background:var(--line)}
@@ -716,11 +717,15 @@ function tipoChip(m){
   const org = m.org ? ' · '+m.org : '';
   return `<span class="tp"><i style="background:${TIPO_COR[k]||'#8a8a93'}"></i>${(TIPO_LB[k]||'Outro')}${org}</span>`;
 }
+// temperatura do negócio -> cor do pontinho (escala quente->frio). Ajustável.
+const TEMP_COR={'vou vender':'#3aaf3a','forecast':'#ffb703','café com leite':'#5aa9ff','não levo fé':'#ff5a5a'};
 // lado direito da célula: temperatura (negócio) + leadscore (contato)
 function sideCel(m){
   const temp=(m.temperatura||'').trim(), ls=(m.leadscore||'').trim();
   if(!temp && !ls) return '';
-  return `<div class="side">${temp?`<span class="temp">${temp}</span>`:''}${ls?`<span class="ls">${ls}</span>`:''}</div>`;
+  const tc = temp ? (TEMP_COR[temp.toLowerCase()]||'#8a8a93') : '';
+  const tempEl = temp ? `<span class="temp"><i style="background:${tc}"></i>${temp}</span>` : '';
+  return `<div class="side">${tempEl}${ls?`<span class="ls">${ls}</span>`:''}</div>`;
 }
 
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
