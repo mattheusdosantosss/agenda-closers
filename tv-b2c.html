@@ -83,7 +83,7 @@
   .pista-linha:last-child{border-bottom:0}
   .quem-nome{display:flex;flex-direction:column;justify-content:center;padding-right:16px;
              border-right:2px solid var(--borda)}
-  .quem-nome b{font-size:22px;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .quem-nome b{font-size:22px;font-weight:700;line-height:1.05}
   .quem-nome em{font-style:normal;font-size:15px;color:var(--texto-3)}
   .pista{position:relative}
   .pista::before{content:"";position:absolute;inset:0;
@@ -264,9 +264,6 @@ function estadoDe(r, now){
   if(now>t) return 'semDesfecho';
   return 'futura';
 }
-// nome do closer: primeiro + último (cabe na coluna da trilha)
-function nomeCurto(nome){ const p=(nome||'').trim().split(/\s+/); return p.length<=2?nome:p[0]+' '+p[p.length-1]; }
-
 let rawB2C=[];   // reuniões cruas dos closers B2C
 let closers=[];
 
@@ -294,7 +291,7 @@ function pintar(){
   const AGORA=nowBrtMin();
   // dados reais -> mesmo shape do painel
   closers=rawB2C.map(c=>({
-    nome:nomeCurto(c.nome),
+    nome:c.nome,
     reunioes:(c.reunioes||[]).map(r=>({
       t:brtMin(r.inicio),
       quem:(r.contato && r.contato!=='—') ? r.contato : (r.titulo||'—'),
