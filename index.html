@@ -199,8 +199,6 @@
   /* ---------- CÉLULA (linha de reunião B2C) — horário+status à esquerda, nome+tipo à direita ---------- */
   .cell{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
   .cell .side{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
-  .cell .temp{display:inline-flex;align-items:center;gap:5px;font-family:var(--inter);font-weight:600;font-size:11.5px;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:8px;padding:2px 8px;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
-  .cell .temp i{width:6px;height:6px;border-radius:50%;flex:0 0 auto}
   .cell .ls{font-family:var(--inter);font-weight:700;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap;line-height:1.15}
   .cell .ls::before{content:"LS ";font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
   .cell+.cell::before{content:"";position:absolute;left:8px;right:8px;top:0;height:1px;background:var(--line)}
@@ -332,8 +330,6 @@
   .ag.cells{display:flex;flex-direction:column;gap:0;overflow:hidden;min-height:0}
   .ag.cells .cell{grid-template-columns:48px 1fr auto;gap:10px;padding:6px 6px}
   .ag.cells .cell .ls{font-size:11px;padding:1px 6px}
-  .ag.cells .cell .side{gap:2px}
-  .ag.cells .cell .temp{font-size:10px;padding:1px 6px;max-width:104px}
   .ag.cells .cell .hr{font-size:14px}
   .ag.cells .cell .due{font-size:10.5px;margin-top:2px}
   .ag.cells .cell .title{font-size:13.5px}
@@ -481,7 +477,7 @@ function gerarDadosDemo(){
       const reun=[];
       for(let k=0;k<qtd;k++){
         const delta = -180 + ((gi*47 + k*70) % 420);
-        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", leadscore:String(20+((gi*13+k*7)%80)), temperatura:(gi+k)%3===0?"Vou vender":((gi+k)%3===1?"Café com leite":""), ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
+        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", leadscore:String(20+((gi*13+k*7)%80)), ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
       }
       gi++;
       b2b.push({nome:p.nome, iniciais:"", cor:"#5aa9ff", segmento:"B2B", squad:si, squadNome:s.nome, lider:p.lider, reunioes:reun});
@@ -524,8 +520,7 @@ function gerarDadosDemo(){
   let pi=0; b2c.forEach(c=>c.reunioes.forEach((m,k)=>{ if(k%2===0) m.perfil=PERFIS[pi++%PERFIS.length]; }));
   // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
   const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"reprog"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
-  const DEMO_TEMP=["Vou vender","Café com leite","","Vou vender","","Café com leite"];
-  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); m.temperatura=DEMO_TEMP[ti%DEMO_TEMP.length]; }));
+  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); }));
 
   return [
     ...b2b.map(c => ({...c, segmento:"B2B"})),
@@ -717,15 +712,10 @@ function tipoChip(m){
   const org = m.org ? ' · '+m.org : '';
   return `<span class="tp"><i style="background:${TIPO_COR[k]||'#8a8a93'}"></i>${(TIPO_LB[k]||'Outro')}${org}</span>`;
 }
-// temperatura do negócio -> cor do pontinho (escala quente->frio). Ajustável.
-const TEMP_COR={'vou vender':'#3aaf3a','forecast':'#ffb703','café com leite':'#5aa9ff','não levo fé':'#ff5a5a'};
-// lado direito da célula: temperatura (negócio) + leadscore (contato)
+// lado direito da célula: leadscore (contato)
 function sideCel(m){
-  const temp=(m.temperatura||'').trim(), ls=(m.leadscore||'').trim();
-  if(!temp && !ls) return '';
-  const tc = temp ? (TEMP_COR[temp.toLowerCase()]||'#8a8a93') : '';
-  const tempEl = temp ? `<span class="temp"><i style="background:${tc}"></i>${temp}</span>` : '';
-  return `<div class="side">${tempEl}${ls?`<span class="ls">${ls}</span>`:''}</div>`;
+  const ls=(m.leadscore||'').trim();
+  return ls ? `<div class="side"><span class="ls">${ls}</span></div>` : '';
 }
 
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers

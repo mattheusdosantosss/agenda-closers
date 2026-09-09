@@ -383,25 +383,22 @@ async function perfisDasMeetings(token, meetingIds) {
   );
   if (!dealIds.size) return info;
 
-  const propsPorDeal = new Map();
+  const perfilPorDeal = new Map();
   await Promise.all(
     emLotes([...dealIds], 100).map(async (lote) => {
       const res = await fetch(`${BASE}/crm/v3/objects/deals/batch/read`, {
         method: "POST",
         headers: headers(token),
-        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "temperatura_atual"] }),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil"] }),
         cache: "no-store",
       });
       if (!res.ok) return;
       const data = await res.json();
-      for (const d of data.results ?? []) propsPorDeal.set(String(d.id), {
-        perfil: (d.properties?.perfil ?? "").trim(),
-        temperatura: (d.properties?.temperatura_atual ?? "").trim(),
-      });
+      for (const d of data.results ?? []) perfilPorDeal.set(String(d.id), (d.properties?.perfil ?? "").trim());
     })
   );
 
-  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", temperatura: "" });
+  for (const [mId, dId] of meetingToDeal) info.set(mId, perfilPorDeal.get(dId) || "");
   return info;
 }
 
@@ -427,7 +424,8 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   const ids = meetings.map((m) => m.id).filter(Boolean);
   const [contatos, perfis] = await Promise.all([
     contatosDasMeetings(token, ids),
-    perfisDasMeetings(token, ids), // perfil + temperatura (ambos os segmentos)
+    // perfil (deal) só é exibido no B2C -> não gasta chamadas de deal no B2B
+    segmento === "B2C" ? perfisDasMeetings(token, ids) : Promise.resolve(new Map()),
   ]);
 
   const dpo = (owner) => {
@@ -482,8 +480,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       leadscore: ct.leadscore || "",
       tipo,
       ...categoriaTipo(tipo), // tp (venda|rel|follow|reprog|sem|outro) + org (SDR|Closer|Merlin|IA)
-      perfil: (perfis.get(String(m.id)) || {}).perfil || "",
-      temperatura: (perfis.get(String(m.id)) || {}).temperatura || "",
+      perfil: perfis.get(String(m.id)) || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
       // conta tudo que foi agendado; cancelada e no-show são circunstanciais
