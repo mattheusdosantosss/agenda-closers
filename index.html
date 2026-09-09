@@ -209,6 +209,9 @@
   .cell .title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
   .cell .meta{display:flex;align-items:center;gap:8px;margin-top:4px;min-width:0}
   .cell .meta .pf{font-size:12px;color:#ffcf99;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* etiquetas (negócio) — linha própria abaixo do tipo/perfil; uma linha, corta o excedente */
+  .cell .etqs{display:flex;gap:6px;margin-top:5px;overflow:hidden}
+  .cell .etq{flex:0 0 auto;font-size:11px;font-weight:600;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:1px 8px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
   .cell.now{background:rgba(255,106,26,.10)}
   .cell.now .hr,.cell.now .due{color:var(--now)} .cell.now .due{font-weight:700}
   .cell.re .hr,.cell.re .due{color:var(--done)}
@@ -520,7 +523,8 @@ function gerarDadosDemo(){
   let pi=0; b2c.forEach(c=>c.reunioes.forEach((m,k)=>{ if(k%2===0) m.perfil=PERFIS[pi++%PERFIS.length]; }));
   // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
   const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"reprog"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
-  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); }));
+  const DEMO_ETQ=["Recompra;VIP","","Indicação","Reagendou;Urgente","","Quente"];
+  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); m.etiquetas=DEMO_ETQ[ti%DEMO_ETQ.length]; }));
 
   return [
     ...b2b.map(c => ({...c, segmento:"B2B"})),
@@ -856,11 +860,14 @@ function render(dados){
         }
         const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const perfil = (m.perfil||'').trim();
+        const etqs = (m.etiquetas||'').split(';').map(s=>s.trim()).filter(Boolean);
+        const etqLine = etqs.length ? `<div class="etqs">${etqs.map(e=>`<span class="etq">${e}</span>`).join('')}</div>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="cell ${cls}"${href}>
           <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
           <div class="body"><div class="title">${nome}</div>
             <div class="meta">${tipoChip(m)}${perfil?`<span class="pf">${perfil}</span>`:''}</div>
+            ${etqLine}
           </div>
           ${sideCel(m)}
         </a>`;

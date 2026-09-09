@@ -357,9 +357,9 @@ async function contatosDasMeetings(token, meetingIds) {
   return info;
 }
 
-// "perfil" e "temperatura_atual" são propriedades do NEGÓCIO (deal). meeting -> deal -> {perfil,temperatura}.
+// "perfil" e "etiquetas" são propriedades do NEGÓCIO (deal). meeting -> deal -> {perfil, etiquetas}.
 async function perfisDasMeetings(token, meetingIds) {
-  const info = new Map(); // meetingId -> {perfil, temperatura}
+  const info = new Map(); // meetingId -> {perfil, etiquetas}
   if (!meetingIds.length) return info;
 
   const meetingToDeal = new Map();
@@ -383,22 +383,25 @@ async function perfisDasMeetings(token, meetingIds) {
   );
   if (!dealIds.size) return info;
 
-  const perfilPorDeal = new Map();
+  const propsPorDeal = new Map();
   await Promise.all(
     emLotes([...dealIds], 100).map(async (lote) => {
       const res = await fetch(`${BASE}/crm/v3/objects/deals/batch/read`, {
         method: "POST",
         headers: headers(token),
-        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil"] }),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "etiquetas"] }),
         cache: "no-store",
       });
       if (!res.ok) return;
       const data = await res.json();
-      for (const d of data.results ?? []) perfilPorDeal.set(String(d.id), (d.properties?.perfil ?? "").trim());
+      for (const d of data.results ?? []) propsPorDeal.set(String(d.id), {
+        perfil: (d.properties?.perfil ?? "").trim(),
+        etiquetas: (d.properties?.etiquetas ?? "").trim(),
+      });
     })
   );
 
-  for (const [mId, dId] of meetingToDeal) info.set(mId, perfilPorDeal.get(dId) || "");
+  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", etiquetas: "" });
   return info;
 }
 
@@ -480,7 +483,8 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       leadscore: ct.leadscore || "",
       tipo,
       ...categoriaTipo(tipo), // tp (venda|rel|follow|reprog|sem|outro) + org (SDR|Closer|Merlin|IA)
-      perfil: perfis.get(String(m.id)) || "",
+      perfil: (perfis.get(String(m.id)) || {}).perfil || "",
+      etiquetas: (perfis.get(String(m.id)) || {}).etiquetas || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
       // conta tudo que foi agendado; cancelada e no-show são circunstanciais
