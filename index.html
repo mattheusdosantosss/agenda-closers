@@ -321,6 +321,15 @@
   .ap2 .g{font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--c);white-space:nowrap;flex:0 0 auto}
   .ap2.cancel .c{text-decoration:line-through;opacity:.7}
   .ag .vazio{color:var(--dim);font-size:11px;padding:2px}
+  /* B2B usa as MESMAS células do B2C, em versão compacta (squads são densos) */
+  .ag.cells{display:flex;flex-direction:column;gap:0;overflow:hidden;min-height:0}
+  .ag.cells .cell{grid-template-columns:48px 1fr;gap:10px;padding:6px 6px}
+  .ag.cells .cell .hr{font-size:14px}
+  .ag.cells .cell .due{font-size:10.5px;margin-top:2px}
+  .ag.cells .cell .title{font-size:13.5px}
+  .ag.cells .cell .meta{margin-top:3px;gap:7px}
+  .ag.cells .cell+.cell::before{left:6px;right:6px}
+  .cell .meta .pf.empresa{color:var(--muted);font-weight:500}
 
   footer{position:fixed;right:14px;bottom:8px;color:var(--dim);font-size:10.5px;letter-spacing:.06em}
   footer b{color:var(--muted)}
@@ -871,21 +880,35 @@ function renderSquads(resumos, agora){
 }
 function pessoaBlock(c, r, agora){
   const reun = [...c.reunioes].sort((a,b)=>a.inicio-b.inicio);
+  let jaMarcouProxima=false;
+  // mesmas células do B2C (horário + status à esquerda, nome + tipo/empresa à direita)
   const linhas = reun.length ? reun.map(m=>{
     const s = statusReuniao(m, agora);
-    const v = statusVisual(s);
+    let cls, due;
+    if(s==="AGORA"){ cls="now"; due="Agora"; }
+    else if(s==="REALIZADA"){ cls="re"; due="Realizada"; }
+    else if(s==="PERDIDA"){ cls="ns"; due="No-show"; }
+    else if(s==="CANCELADA"){ cls="cancel"; due="Cancelada"; }
+    else if(s==="REPROGRAMADA"){ cls="reprog"; due="Reprogramada"; }
+    else if(s==="PENDENTE"){ cls="reg"; due="A registrar"; }
+    else { cls=""; due=""; if(ehHojeSel() && !jaMarcouProxima){ cls="now"; due=faltamMin(m.inicio, agora); jaMarcouProxima=true; } }
+    const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
     const emp = (m.empresa||'').trim();
-    const info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato || m.titulo || '—');
+    const empCel = (emp && emp!=='—') ? `<span class="pf empresa">${emp}</span>` : '';
     const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
-    const cls = s==='CANCELADA' ? 'ap2 cancel' : 'ap2';
-    return `<a class="${cls}" style="--c:${v.cor}"${href}><span class="t">${fmtHora(m.inicio)}</span><span class="c">${info}</span><span class="g">${v.tag}</span></a>`;
+    return `<a class="cell ${cls}"${href}>
+      <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
+      <div class="body"><div class="title">${nome}</div>
+        <div class="meta">${tipoChip(m)}${empCel}</div>
+      </div>
+    </a>`;
   }).join('') : `<div class="vazio">Sem reuniões</div>`;
   return `<div class="pessoa ${c.lider?'lider':''}">
     <div class="p-h">
       <span class="p-nome">${c.nome}</span>${c.lider?'<span class="p-lider">Líder</span>':''}
-      <span class="p-cnt"><span><b>${r.agendadas}</b> ag</span><span style="color:var(--done)"><b>${r.realizadas}</b> re</span><span style="color:var(--sched)"><b>${r.futuras}</b> fu</span></span>
+      <span class="p-cnt"><span><b>${r.agendadas}</b> ag</span><span style="color:var(--done)"><b>${r.realizadas}</b> re</span><span style="color:var(--blue)"><b>${r.futuras}</b> fu</span></span>
     </div>
-    <div class="ag">${linhas}</div>
+    <div class="ag cells">${linhas}</div>
   </div>`;
 }
 
