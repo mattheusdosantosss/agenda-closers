@@ -347,7 +347,7 @@
 <body>
 <script>
   // B2C usa o painel dedicado de reuniões de venda (tv-b2c.html)
-  if((new URLSearchParams(location.search).get('seg')||'').toLowerCase()==='b2c') location.replace('tv-b2c.html');
+  if((new URLSearchParams(location.search).get('seg')||'').toLowerCase()==='b2c') location.replace('tv-b2c');
 </script>
 
 <header>
@@ -1025,7 +1025,7 @@ setInterval(atualizar, 60000); // 60s: metade das invocações de função na Ve
 // (cada TV pode abrir fixa em ?seg=b2b ou ?seg=b2c e nunca precisar de clique)
 document.querySelectorAll('#segTabs .tab').forEach(btn=>{
   btn.addEventListener('click', ()=>{
-    if(btn.dataset.seg==='B2C'){ location.assign('tv-b2c.html'); return; } // B2C = painel dedicado
+    if(btn.dataset.seg==='B2C'){ location.assign('tv-b2c'); return; } // B2C = painel dedicado
     state.seg = btn.dataset.seg;
     const u = new URL(location); u.searchParams.set('seg', state.seg.toLowerCase());
     history.replaceState({}, '', u);
