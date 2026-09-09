@@ -614,17 +614,25 @@ const HOJE_ISO = isoDia(new Date());
 const DIAS_SEMANA = ['domingo','segunda','terça','quarta','quinta','sexta','sábado'];
 // segunda-feira da semana da data dada
 function segundaDaSemana(base){ const d=new Date(base); const off=(d.getDay()+6)%7; d.setDate(d.getDate()-off); d.setHours(0,0,0,0); return d; }
-// dias úteis (seg..sex) da semana atual: [{iso,label}]
-const DIAS_UTEIS = Array.from({length:5}, (_,i)=>{ const d=segundaDaSemana(new Date()); d.setDate(d.getDate()+i); return {iso:isoDia(d), label:['Segunda','Terça','Quarta','Quinta','Sexta'][i]}; });
+const LABEL_DIAS=['Segunda','Terça','Quarta','Quinta','Sexta'];
 const ddmm = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
 const ddmmIso = s => { const [ , m, d] = s.split('-'); return `${d}/${m}`; };
-const ehSemana = v => (v||'').includes('~');   // token INICIO~FIM (semana futura)
-// próximas 6 semanas (seg..sex), a partir da semana que vem
-const SEMANAS_FUT = Array.from({length:6},(_,i)=>{
-  const mon=segundaDaSemana(new Date()); mon.setDate(mon.getDate()+7*(i+1));
+const ehSemana = v => (v||'').includes('~');            // token INICIO~FIM
+const ehDataIso = v => /^\d{4}-\d{2}-\d{2}$/.test(v||'');
+// semana atual + próximas 5 (seg..sex) para o dropdown "Semana"
+const SEMANAS = Array.from({length:6},(_,i)=>{
+  const mon=segundaDaSemana(new Date()); mon.setDate(mon.getDate()+7*i);
   const fri=new Date(mon); fri.setDate(fri.getDate()+4);
-  return {tok:`${isoDia(mon)}~${isoDia(fri)}`, label:`${ddmm(mon)} a ${ddmm(fri)}`};
+  return {mon, tok:`${isoDia(mon)}~${isoDia(fri)}`, label:`${ddmm(mon)} a ${ddmm(fri)}`, atual:i===0};
 });
+// segunda-feira da semana em foco, derivada do state.range (data OU token de semana)
+function activeWeekMonday(){
+  let base;
+  if(ehSemana(state.range)){ const [a]=state.range.split('~'); const [y,m,d]=a.split('-').map(Number); base=new Date(y,m-1,d); }
+  else if(ehDataIso(state.range)){ const [y,m,d]=state.range.split('-').map(Number); base=new Date(y,m-1,d); }
+  else base=new Date();
+  return segundaDaSemana(base);
+}
 function rangeLabel(r){
   if(ehSemana(r)){ const [a,b]=r.split('~'); return `${ddmmIso(a)} a ${ddmmIso(b)}`; }
   if(r==='semana') return 'esta semana';
@@ -641,39 +649,54 @@ const state = {
 };
 if(!['B2B','B2C'].includes(state.seg)) state.seg='B2B';
 // período válido = dia seg-sex desta semana OU token de semana futura; senão hoje (1ª útil no fim de semana)
-const DIAS_UTEIS_ISO = DIAS_UTEIS.map(x=>x.iso);
-if(!DIAS_UTEIS_ISO.includes(state.range) && !ehSemana(state.range)){
-  state.range = DIAS_UTEIS_ISO.includes(HOJE_ISO) ? HOJE_ISO : DIAS_UTEIS_ISO[0];
+if(!ehDataIso(state.range) && !ehSemana(state.range)){
+  const dow=new Date().getDay();
+  state.range = (dow>=1 && dow<=5) ? HOJE_ISO : isoDia(segundaDaSemana(new Date()));
 }
 
-// injeta as abas dos dias úteis + o dropdown "Semana" (semanas futuras)
+// muda o período (data ou token de semana), atualiza URL, reconstrói as abas de dia e re-busca
+function selecionaRange(r){
+  if(!r || state.range===r) return;
+  state.range=r;
+  const u=new URL(location); u.searchParams.set('range', state.range); history.replaceState({}, '', u);
+  renderDiasTabs();
+  atualizar();
+}
+// (re)constrói Segunda..Sexta para a semana em foco (só quando a semana muda)
+let _semanaTabsMon=null;
+function renderDiasTabs(){
+  const nav=document.getElementById('rangeTabs');
+  const monIso=isoDia(activeWeekMonday());
+  if(monIso===_semanaTabsMon) return;
+  _semanaTabsMon=monIso;
+  nav.querySelectorAll('.tab.dia').forEach(b=>b.remove());
+  const wrap=nav.querySelector('.wk-wrap');
+  const [my,mm,md]=monIso.split('-').map(Number); const mon=new Date(my,mm-1,md);
+  LABEL_DIAS.forEach((lab,i)=>{
+    const d=new Date(mon); d.setDate(d.getDate()+i); const iso=isoDia(d);
+    const b=document.createElement('button'); b.className='tab dia'; b.dataset.range=iso;
+    b.textContent=lab; if(iso===HOJE_ISO) b.title='Hoje';
+    nav.insertBefore(b, wrap);
+  });
+}
+// dropdown "Semana" (semana atual + próximas 5) + delegação de clique nas abas de dia
 (function(){
   const nav = document.getElementById('rangeTabs');
-  DIAS_UTEIS.forEach(d=>{
-    const b=document.createElement('button'); b.className='tab'; b.dataset.range=d.iso;
-    b.textContent = d.label;
-    if(d.iso===HOJE_ISO) b.title='Hoje';
-    nav.appendChild(b);
-  });
-  // dropdown Semana
   const wrap=document.createElement('div'); wrap.className='wk-wrap';
   const btn=document.createElement('button'); btn.className='tab'; btn.id='wkBtn'; btn.textContent='Semana ▾';
   const menu=document.createElement('div'); menu.className='wk-menu'; menu.id='wkMenu';
-  menu.innerHTML = SEMANAS_FUT.map(s=>`<button class="wk-item" data-range="${s.tok}">${s.label}</button>`).join('');
+  menu.innerHTML = SEMANAS.map(s=>`<button class="wk-item" data-range="${s.tok}">${s.atual?'Esta semana · ':''}${s.label}</button>`).join('');
   wrap.append(btn, menu);
   nav.appendChild(wrap);
   btn.addEventListener('click', e=>{ e.stopPropagation(); wrap.classList.toggle('open'); });
   document.addEventListener('click', ()=>wrap.classList.remove('open'));
   menu.querySelectorAll('.wk-item').forEach(it=>{
-    it.addEventListener('click', ()=>{
-      wrap.classList.remove('open');
-      if(state.range===it.dataset.range) return;
-      state.range=it.dataset.range;
-      const u=new URL(location); u.searchParams.set('range', state.range); history.replaceState({}, '', u);
-      atualizar();
-    });
+    it.addEventListener('click', ()=>{ wrap.classList.remove('open'); selecionaRange(it.dataset.range); });
   });
+  // abas de dia são recriadas por semana -> usa delegação
+  nav.addEventListener('click', e=>{ const b=e.target.closest('.tab.dia'); if(b) selecionaRange(b.dataset.range); });
 })();
+renderDiasTabs();
 
 // tipos de reunião (categoria de negócio) — rótulo + cor do pontinho
 const TIPO_LB ={venda:"Venda",rel:"Relacionamento",follow:"Follow-up",sem:"Sem tipo",outro:"Outro"};
@@ -703,6 +726,7 @@ function render(dados){
   const doSeg = dados.filter(c => c.segmento === state.seg);
 
   // atualiza abas (segmento + período) e subtítulo
+  renderDiasTabs(); // garante que Seg..Sex reflitam a semana em foco
   document.querySelectorAll('#segTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.seg===state.seg));
   document.querySelectorAll('#rangeTabs .tab').forEach(b=>b.classList.toggle('active', b.dataset.range===state.range));
   // botão "Semana": ativo quando uma semana futura está selecionada; mostra o intervalo
@@ -991,17 +1015,7 @@ document.querySelectorAll('#segTabs .tab').forEach(btn=>{
   });
 });
 
-// abas de PERÍODO: muda a janela no backend, então re-busca (?range=...)
-document.querySelectorAll('#rangeTabs .tab').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    if(!btn.dataset.range) return;            // ex.: botão "Semana" (dropdown), tratado à parte
-    if(state.range===btn.dataset.range) return;
-    state.range = btn.dataset.range;
-    const u = new URL(location); u.searchParams.set('range', state.range);
-    history.replaceState({}, '', u);
-    atualizar(); // busca a nova janela e re-renderiza
-  });
-});
+// (abas de PERÍODO são tratadas por selecionaRange + delegação, definidos acima)
 
 tickRelogio();
 atualizar();
