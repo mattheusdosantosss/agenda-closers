@@ -357,9 +357,9 @@ async function contatosDasMeetings(token, meetingIds) {
   return info;
 }
 
-// "perfil" é propriedade do NEGÓCIO (deal). Cada meeting -> deal associado -> perfil.
+// "perfil" e "temperatura_atual" são propriedades do NEGÓCIO (deal). meeting -> deal -> {perfil,temperatura}.
 async function perfisDasMeetings(token, meetingIds) {
-  const info = new Map(); // meetingId -> perfil
+  const info = new Map(); // meetingId -> {perfil, temperatura}
   if (!meetingIds.length) return info;
 
   const meetingToDeal = new Map();
@@ -383,22 +383,25 @@ async function perfisDasMeetings(token, meetingIds) {
   );
   if (!dealIds.size) return info;
 
-  const perfilPorDeal = new Map();
+  const propsPorDeal = new Map();
   await Promise.all(
     emLotes([...dealIds], 100).map(async (lote) => {
       const res = await fetch(`${BASE}/crm/v3/objects/deals/batch/read`, {
         method: "POST",
         headers: headers(token),
-        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil"] }),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "temperatura_atual"] }),
         cache: "no-store",
       });
       if (!res.ok) return;
       const data = await res.json();
-      for (const d of data.results ?? []) perfilPorDeal.set(String(d.id), (d.properties?.perfil ?? "").trim());
+      for (const d of data.results ?? []) propsPorDeal.set(String(d.id), {
+        perfil: (d.properties?.perfil ?? "").trim(),
+        temperatura: (d.properties?.temperatura_atual ?? "").trim(),
+      });
     })
   );
 
-  for (const [mId, dId] of meetingToDeal) info.set(mId, perfilPorDeal.get(dId) || "");
+  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", temperatura: "" });
   return info;
 }
 
@@ -424,8 +427,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   const ids = meetings.map((m) => m.id).filter(Boolean);
   const [contatos, perfis] = await Promise.all([
     contatosDasMeetings(token, ids),
-    // perfil só é exibido no B2C -> não gasta chamadas de deal no B2B
-    segmento === "B2C" ? perfisDasMeetings(token, ids) : Promise.resolve(new Map()),
+    perfisDasMeetings(token, ids), // perfil + temperatura (ambos os segmentos)
   ]);
 
   const dpo = (owner) => {
@@ -480,7 +482,8 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       leadscore: ct.leadscore || "",
       tipo,
       ...categoriaTipo(tipo), // tp (venda|rel|follow|reprog|sem|outro) + org (SDR|Closer|Merlin|IA)
-      perfil: perfis.get(String(m.id)) || "",
+      perfil: (perfis.get(String(m.id)) || {}).perfil || "",
+      temperatura: (perfis.get(String(m.id)) || {}).temperatura || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
       // conta tudo que foi agendado; cancelada e no-show são circunstanciais

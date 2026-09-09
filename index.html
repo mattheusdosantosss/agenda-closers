@@ -198,7 +198,9 @@
 
   /* ---------- CÉLULA (linha de reunião B2C) — horário+status à esquerda, nome+tipo à direita ---------- */
   .cell{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
-  .cell .ls{justify-self:end;align-self:center;font-family:var(--inter);font-weight:700;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap;line-height:1.15}
+  .cell .side{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
+  .cell .temp{font-family:var(--inter);font-weight:600;font-size:11.5px;color:#ffd9a3;background:rgba(245,169,60,.15);border:1px solid rgba(245,169,60,.38);border-radius:8px;padding:2px 8px;max-width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+  .cell .ls{font-family:var(--inter);font-weight:700;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap;line-height:1.15}
   .cell .ls::before{content:"LS ";font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
   .cell+.cell::before{content:"";position:absolute;left:8px;right:8px;top:0;height:1px;background:var(--line)}
   .cell .lead{text-align:right;min-width:0}
@@ -307,8 +309,10 @@
   .squad-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 13px;border-bottom:1px solid var(--line)}
   .squad-h .nome{font-family:var(--num);font-weight:700;font-size:23px;letter-spacing:.02em;line-height:1}
   .squad-h .tag{font-size:9.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);background:rgba(255,106,26,.14);padding:4px 9px;border-radius:999px}
-  .pessoa{display:flex;flex-direction:column;min-height:0;padding:8px 11px;border-bottom:1px solid var(--line)}
-  .pessoa:last-child{border-bottom:none}
+  /* pessoas em grade 2 colunas dentro de cada time (menos denso, não corta reunião) */
+  .squad-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;overflow:hidden}
+  .pessoa{display:flex;flex-direction:column;min-height:0;padding:8px 12px;border-bottom:1px solid var(--line);border-right:1px solid var(--line);overflow:hidden}
+  .pessoa:nth-child(2n){border-right:none}
   .pessoa.lider{background:rgba(255,106,26,.06)}
   .p-h{display:flex;align-items:center;gap:7px;margin-bottom:6px}
   .p-nome{font-family:var(--inter);font-weight:700;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -327,6 +331,8 @@
   .ag.cells{display:flex;flex-direction:column;gap:0;overflow:hidden;min-height:0}
   .ag.cells .cell{grid-template-columns:48px 1fr auto;gap:10px;padding:6px 6px}
   .ag.cells .cell .ls{font-size:11px;padding:1px 6px}
+  .ag.cells .cell .side{gap:2px}
+  .ag.cells .cell .temp{font-size:10px;padding:1px 6px;max-width:104px}
   .ag.cells .cell .hr{font-size:14px}
   .ag.cells .cell .due{font-size:10.5px;margin-top:2px}
   .ag.cells .cell .title{font-size:13.5px}
@@ -474,7 +480,7 @@ function gerarDadosDemo(){
       const reun=[];
       for(let k=0;k<qtd;k++){
         const delta = -180 + ((gi*47 + k*70) % 420);
-        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", leadscore:String(20+((gi*13+k*7)%80)), ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
+        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", leadscore:String(20+((gi*13+k*7)%80)), temperatura:(gi+k)%3===0?"Vou vender":((gi+k)%3===1?"Café com leite":""), ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
       }
       gi++;
       b2b.push({nome:p.nome, iniciais:"", cor:"#5aa9ff", segmento:"B2B", squad:si, squadNome:s.nome, lider:p.lider, reunioes:reun});
@@ -517,7 +523,8 @@ function gerarDadosDemo(){
   let pi=0; b2c.forEach(c=>c.reunioes.forEach((m,k)=>{ if(k%2===0) m.perfil=PERFIS[pi++%PERFIS.length]; }));
   // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
   const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"reprog"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
-  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); }));
+  const DEMO_TEMP=["Vou vender","Café com leite","","Vou vender","","Café com leite"];
+  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); m.temperatura=DEMO_TEMP[ti%DEMO_TEMP.length]; }));
 
   return [
     ...b2b.map(c => ({...c, segmento:"B2B"})),
@@ -709,6 +716,12 @@ function tipoChip(m){
   const org = m.org ? ' · '+m.org : '';
   return `<span class="tp"><i style="background:${TIPO_COR[k]||'#8a8a93'}"></i>${(TIPO_LB[k]||'Outro')}${org}</span>`;
 }
+// lado direito da célula: temperatura (negócio) + leadscore (contato)
+function sideCel(m){
+  const temp=(m.temperatura||'').trim(), ls=(m.leadscore||'').trim();
+  if(!temp && !ls) return '';
+  return `<div class="side">${temp?`<span class="temp">${temp}</span>`:''}${ls?`<span class="ls">${ls}</span>`:''}</div>`;
+}
 
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
 function colsFor(n){
@@ -848,14 +861,13 @@ function render(dados){
         }
         const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const perfil = (m.perfil||'').trim();
-        const ls = (m.leadscore||'').trim();
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="cell ${cls}"${href}>
           <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
           <div class="body"><div class="title">${nome}</div>
             <div class="meta">${tipoChip(m)}${perfil?`<span class="pf">${perfil}</span>`:''}</div>
           </div>
-          ${ls?`<span class="ls">${ls}</span>`:''}
+          ${sideCel(m)}
         </a>`;
       }).join('');
       const mais = ordenadas.length>MAXB2C ? `<div class="more">+${ordenadas.length-MAXB2C} mais tarde</div>` : '';
@@ -909,7 +921,7 @@ function renderSquads(resumos, agora){
     const lider = membros.find(m=>m.c.lider) || membros[0];
     return `<div class="squad">
       <div class="squad-h"><span class="tag">Squad</span></div>
-      ${membros.map(({c,r})=>pessoaBlock(c, r, agora)).join('')}
+      <div class="squad-body">${membros.map(({c,r})=>pessoaBlock(c, r, agora)).join('')}</div>
     </div>`;
   }).join('');
 }
@@ -930,14 +942,13 @@ function pessoaBlock(c, r, agora){
     const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
     const emp = (m.empresa||'').trim();
     const empCel = (emp && emp!=='—') ? `<span class="pf empresa">${emp}</span>` : '';
-    const ls = (m.leadscore||'').trim();
     const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
     return `<a class="cell ${cls}"${href}>
       <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
       <div class="body"><div class="title">${nome}</div>
         <div class="meta">${tipoChip(m)}${empCel}</div>
       </div>
-      ${ls?`<span class="ls">${ls}</span>`:''}
+      ${sideCel(m)}
     </a>`;
   }).join('') : `<div class="vazio">Sem reuniões</div>`;
   return `<div class="pessoa ${c.lider?'lider':''}">
