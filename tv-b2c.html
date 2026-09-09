@@ -264,6 +264,9 @@ function estadoDe(r, now){
   if(now>t) return 'semDesfecho';
   return 'futura';
 }
+// nome do closer abreviado: primeiro + último (a pedido, p/ caber na coluna da trilha)
+function nomeCurto(nome){ const p=(nome||'').trim().split(/\s+/); return p.length<=2?nome:p[0]+' '+p[p.length-1]; }
+
 let rawB2C=[];   // reuniões cruas dos closers B2C
 let closers=[];
 
@@ -291,7 +294,7 @@ function pintar(){
   const AGORA=nowBrtMin();
   // dados reais -> mesmo shape do painel
   closers=rawB2C.map(c=>({
-    nome:c.nome,
+    nome:nomeCurto(c.nome),
     reunioes:(c.reunioes||[]).map(r=>({
       t:brtMin(r.inicio),
       quem:(r.contato && r.contato!=='—') ? r.contato : (r.titulo||'—'),
