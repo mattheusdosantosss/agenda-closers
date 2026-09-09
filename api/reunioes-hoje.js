@@ -101,6 +101,7 @@ function categoriaTipo(tipo) {
   if (!t) return { tp: "sem", org: "" };
   if (t.includes("relacionamento")) return { tp: "rel", org: "" };
   if (t.includes("followup")) return { tp: "follow", org: "" };
+  if (t.includes("reprogramada")) return { tp: "reprog", org: "" };
   if (t.includes("venda") || t.includes("marcacao")) {
     let org = "";
     if (t.includes("sdr")) org = "SDR";
@@ -330,7 +331,7 @@ async function contatosDasMeetings(token, meetingIds) {
         headers: headers(token),
         body: JSON.stringify({
           inputs: lote.map((id) => ({ id })),
-          properties: ["firstname", "lastname", "company"],
+          properties: ["firstname", "lastname", "company", "pontuacao_leadscore"],
         }),
         cache: "no-store",
       });
@@ -343,6 +344,7 @@ async function contatosDasMeetings(token, meetingIds) {
         contatos.set(String(c.id), {
           contato: nome,
           empresa: (p.company ?? "").trim() || "—",
+          leadscore: String(p.pontuacao_leadscore ?? "").trim(),
           contatoId: String(c.id),
         });
       }
@@ -475,8 +477,9 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
       contato: ct.contato,
       empresa: segmento === "B2C" ? "—" : ct.empresa,
+      leadscore: ct.leadscore || "",
       tipo,
-      ...categoriaTipo(tipo), // tp (venda|rel|follow|sem|outro) + org (SDR|Closer|Merlin|IA)
+      ...categoriaTipo(tipo), // tp (venda|rel|follow|reprog|sem|outro) + org (SDR|Closer|Merlin|IA)
       perfil: perfis.get(String(m.id)) || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),

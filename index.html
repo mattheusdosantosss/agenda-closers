@@ -197,7 +197,9 @@
   .agenda.empty-day{align-items:center;justify-content:center;color:var(--muted);font-size:15px}
 
   /* ---------- CÉLULA (linha de reunião B2C) — horário+status à esquerda, nome+tipo à direita ---------- */
-  .cell{display:grid;grid-template-columns:62px 1fr;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
+  .cell{display:grid;grid-template-columns:62px 1fr auto;align-items:center;gap:12px;padding:9px 8px;border-radius:12px;position:relative;color:inherit;text-decoration:none}
+  .cell .ls{justify-self:end;align-self:center;font-family:var(--inter);font-weight:700;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap;line-height:1.15}
+  .cell .ls::before{content:"LS ";font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
   .cell+.cell::before{content:"";position:absolute;left:8px;right:8px;top:0;height:1px;background:var(--line)}
   .cell .lead{text-align:right;min-width:0}
   .cell .hr{font-family:var(--inter);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:var(--muted);line-height:1.1}
@@ -323,7 +325,8 @@
   .ag .vazio{color:var(--dim);font-size:11px;padding:2px}
   /* B2B usa as MESMAS células do B2C, em versão compacta (squads são densos) */
   .ag.cells{display:flex;flex-direction:column;gap:0;overflow:hidden;min-height:0}
-  .ag.cells .cell{grid-template-columns:48px 1fr;gap:10px;padding:6px 6px}
+  .ag.cells .cell{grid-template-columns:48px 1fr auto;gap:10px;padding:6px 6px}
+  .ag.cells .cell .ls{font-size:11px;padding:1px 6px}
   .ag.cells .cell .hr{font-size:14px}
   .ag.cells .cell .due{font-size:10.5px;margin-top:2px}
   .ag.cells .cell .title{font-size:13.5px}
@@ -471,7 +474,7 @@ function gerarDadosDemo(){
       const reun=[];
       for(let k=0;k<qtd;k++){
         const delta = -180 + ((gi*47 + k*70) % 420);
-        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
+        reun.push({titulo:"Reunião", contato:CT[(gi*5+k*3)%CT.length], empresa:"—", leadscore:String(20+((gi*13+k*7)%80)), ...h(delta,40), outcome:OUT[(gi+k)%OUT.length]});
       }
       gi++;
       b2b.push({nome:p.nome, iniciais:"", cor:"#5aa9ff", segmento:"B2B", squad:si, squadNome:s.nome, lider:p.lider, reunioes:reun});
@@ -513,8 +516,8 @@ function gerarDadosDemo(){
   const PERFIS=["Iniciante","Profissionalize-se","Escala"];
   let pi=0; b2c.forEach(c=>c.reunioes.forEach((m,k)=>{ if(k%2===0) m.perfil=PERFIS[pi++%PERFIS.length]; }));
   // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
-  const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
-  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); }));
+  const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"reprog"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
+  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); }));
 
   return [
     ...b2b.map(c => ({...c, segmento:"B2B"})),
@@ -699,8 +702,8 @@ function renderDiasTabs(){
 renderDiasTabs();
 
 // tipos de reunião (categoria de negócio) — rótulo + cor do pontinho
-const TIPO_LB ={venda:"Venda",rel:"Relacionamento",follow:"Follow-up",sem:"Sem tipo",outro:"Outro"};
-const TIPO_COR={venda:"#ffb703",rel:"#5aa9ff",follow:"#ff8f6b",sem:"#8a8a93",outro:"#8a8a93"};
+const TIPO_LB ={venda:"Venda",rel:"Relacionamento",follow:"Follow-up",reprog:"Reprogramada",sem:"Sem tipo",outro:"Outro"};
+const TIPO_COR={venda:"#ffb703",rel:"#5aa9ff",follow:"#ff8f6b",reprog:"#c08cff",sem:"#8a8a93",outro:"#8a8a93"};
 function tipoChip(m){
   const k = m.tp || 'sem';
   const org = m.org ? ' · '+m.org : '';
@@ -751,6 +754,9 @@ function render(dados){
     {n:tot.agora, t:"Agora", s:"Agora", c:"var(--now)", k:"AGORA"},
     {n:tot.futuras, t:"Futuras", s:"Futuras", c:"var(--next)", k:"FUTURA"},
     {n:tot.perdidas, t:"No-show", s:"No-show", c:"var(--miss)", k:"PERDIDA"},
+    {n:tot.pendentes, t:"A registrar", s:"A registrar", c:"var(--muted)", k:"PENDENTE"},
+    {n:tot.reprogramadas, t:"Reprogramadas", s:"Reprog.", c:"var(--blue)", k:"REPROGRAMADA"},
+    {n:tot.canceladas, t:"Canceladas", s:"Canceladas", c:"var(--dim)", k:"CANCELADA"},
   ];
   const kpis = document.getElementById('kpis');
   kpis.className = 'kpis';
@@ -833,18 +839,23 @@ function render(dados){
         else if(s==="CANCELADA"){ cls="cancel"; due="Cancelada"; }
         else if(s==="REPROGRAMADA"){ cls="reprog"; due="Reprogramada"; }
         else if(s==="PENDENTE"){ cls="reg"; due="A registrar"; }
-        else { // FUTURA — "Agendada" é o padrão (fica só na cor); a próxima de hoje ganha "em X min"
+        else { // FUTURA — só destaca a próxima se for logo (≤60min); senão fica futura normal
           cls=""; due="";
-          if(ehHojeSel() && !emAndamento && !jaMarcouProxima){ cls="now"; due=faltamMin(m.inicio, agora); jaMarcouProxima=true; }
+          if(ehHojeSel() && !emAndamento && !jaMarcouProxima){
+            jaMarcouProxima=true;
+            if(Math.round((m.inicio-agora)/60000) <= 60){ cls="now"; due=faltamMin(m.inicio, agora); }
+          }
         }
         const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const perfil = (m.perfil||'').trim();
+        const ls = (m.leadscore||'').trim();
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="cell ${cls}"${href}>
           <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
           <div class="body"><div class="title">${nome}</div>
             <div class="meta">${tipoChip(m)}${perfil?`<span class="pf">${perfil}</span>`:''}</div>
           </div>
+          ${ls?`<span class="ls">${ls}</span>`:''}
         </a>`;
       }).join('');
       const mais = ordenadas.length>MAXB2C ? `<div class="more">+${ordenadas.length-MAXB2C} mais tarde</div>` : '';
@@ -915,16 +926,18 @@ function pessoaBlock(c, r, agora){
     else if(s==="CANCELADA"){ cls="cancel"; due="Cancelada"; }
     else if(s==="REPROGRAMADA"){ cls="reprog"; due="Reprogramada"; }
     else if(s==="PENDENTE"){ cls="reg"; due="A registrar"; }
-    else { cls=""; due=""; if(ehHojeSel() && !jaMarcouProxima){ cls="now"; due=faltamMin(m.inicio, agora); jaMarcouProxima=true; } }
+    else { cls=""; due=""; if(ehHojeSel() && !jaMarcouProxima){ jaMarcouProxima=true; if(Math.round((m.inicio-agora)/60000)<=60){ cls="now"; due=faltamMin(m.inicio, agora); } } }
     const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
     const emp = (m.empresa||'').trim();
     const empCel = (emp && emp!=='—') ? `<span class="pf empresa">${emp}</span>` : '';
+    const ls = (m.leadscore||'').trim();
     const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
     return `<a class="cell ${cls}"${href}>
       <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
       <div class="body"><div class="title">${nome}</div>
         <div class="meta">${tipoChip(m)}${empCel}</div>
       </div>
+      ${ls?`<span class="ls">${ls}</span>`:''}
     </a>`;
   }).join('') : `<div class="vazio">Sem reuniões</div>`;
   return `<div class="pessoa ${c.lider?'lider':''}">
