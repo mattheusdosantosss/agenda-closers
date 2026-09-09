@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reuniões de venda B2C — painel de operação (TV 60")</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --fundo:#08191A; --painel:#0F2628; --painel-2:#143033; --borda:#1E4245;
+    --texto:#E9F3EF; --texto-2:#9CBDB8; --texto-3:#6A8D89;
+    --selo:#3FC28C; --ambar:#F5A93C; --vinho:#EC6B72; --agora:#54ABEC; --remarc:#B79BE0;
+    --t-esc:#4FA0E8; --t-prof:#F5C93C; --t-ini:#E0564F;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:#000;overflow:hidden}
+  body{font-family:'Archivo',system-ui,sans-serif;color:var(--texto);
+       font-variant-numeric:tabular-nums;font-feature-settings:"tnum" 1}
+
+  #palco{position:absolute;top:0;left:0;width:1920px;height:1080px;transform-origin:top left;
+         background:var(--fundo);padding:40px;display:grid;
+         grid-template-rows:84px 250px 322px 278px;gap:20px}
+
+  .cab{display:flex;align-items:center;justify-content:space-between;
+       border-bottom:3px solid var(--borda);padding-bottom:14px}
+  .cab h1{margin:0;font-size:38px;font-weight:800;letter-spacing:-.02em}
+  .cab .dia{font-size:21px;color:var(--texto-2);margin-top:2px}
+  .dir{display:flex;align-items:center;gap:34px}
+  .escala{text-align:right;font-size:19px;color:var(--texto-2);line-height:1.3}
+  .escala b{display:block;font-size:30px;color:var(--texto);font-weight:700}
+  .relogio{font-size:82px;font-weight:800;letter-spacing:-.04em;line-height:.85}
+  .relogio i{font-style:normal;font-size:40px;color:var(--texto-3)}
+  .sinc{font-size:17px;color:var(--texto-3);text-align:right;margin-top:6px}
+
+  .bloco-p{background:var(--painel);border:2px solid var(--borda);padding:18px 22px}
+  .rot{font-size:19px;font-weight:600;color:var(--texto-2)}
+
+  /* faixa */
+  .faixa{display:grid;grid-template-columns:330px 1fr 330px;gap:20px}
+  .base-dia .n{font-size:96px;font-weight:900;letter-spacing:-.05em;line-height:.86;margin-top:2px}
+  .base-dia .n em{font-style:normal;font-size:30px;font-weight:700;color:var(--texto-3)}
+  .base-dia .det{margin-top:14px;border-top:1px solid var(--painel-2);padding-top:10px;
+                 font-size:18px;color:var(--texto-2);line-height:1.55}
+  .base-dia .det b{color:var(--texto);font-weight:700}
+  .base-dia .det div{display:flex;justify-content:space-between;gap:12px}
+
+  .centro{background:var(--painel);border:3px solid var(--selo);padding:20px 26px;
+          display:grid;grid-template-columns:1fr 300px;gap:26px;align-items:center}
+  .centro .esq .k{font-size:24px;font-weight:700;color:var(--texto-2)}
+  .centro .esq .v{font-size:150px;font-weight:900;color:var(--selo);letter-spacing:-.06em;line-height:.82;margin-top:2px}
+  .centro .esq .d{font-size:23px;font-weight:600;margin-top:8px}
+  .centro .esq .barra{height:14px;background:var(--painel-2);margin-top:14px;display:flex}
+  .centro .esq .barra i{display:block;height:100%}
+  .centro .esq .meta{font-size:17px;color:var(--texto-3);margin-top:8px}
+  .lado{display:flex;flex-direction:column;gap:12px}
+  .lado .cx{border-left:8px solid;padding:10px 16px;background:var(--painel-2)}
+  .lado .cx .n{font-size:60px;font-weight:900;letter-spacing:-.04em;line-height:.88}
+  .lado .cx .k{font-size:19px;font-weight:600;line-height:1.15;margin-top:2px}
+  .lado .cx.sim{border-color:var(--selo)} .lado .cx.sim .n{color:var(--selo)}
+  .lado .cx.nao{border-color:var(--vinho)} .lado .cx.nao .n{color:var(--vinho)}
+
+  .fora-col{display:flex;flex-direction:column;gap:20px}
+  .fora{background:var(--painel);border:2px solid var(--borda);padding:14px 20px;flex:1;
+        display:flex;flex-direction:column;justify-content:center}
+  .fora.canc{border-left:8px solid var(--vinho)}
+  .fora.rem{border-left:8px dashed var(--remarc)}
+  .fora .n{font-size:64px;font-weight:900;letter-spacing:-.04em;line-height:.88}
+  .fora.canc .n{color:var(--vinho)} .fora.rem .n{color:var(--remarc)}
+  .fora .k{font-size:21px;font-weight:700;margin-top:2px}
+  .fora .d{font-size:16px;color:var(--texto-3);margin-top:3px}
+
+  /* timeline */
+  .cab-trilha{display:flex;align-items:center;gap:26px;margin-bottom:10px}
+  .cab-trilha h2{margin:0;font-size:23px;font-weight:700}
+  .leg{display:flex;gap:14px;font-size:16px;color:var(--texto-2);align-items:center}
+  .leg.dir-leg{margin-left:auto}
+  .grade{position:relative;margin-left:240px;height:22px;border-bottom:2px solid var(--borda)}
+  .grade i{position:absolute;top:0;font-style:normal;font-size:17px;color:var(--texto-3);transform:translateX(-50%)}
+  .pista-linha{display:grid;grid-template-columns:240px 1fr;height:48px;border-bottom:1px solid var(--painel-2)}
+  .pista-linha:last-child{border-bottom:0}
+  .quem-nome{display:flex;flex-direction:column;justify-content:center;padding-right:16px;
+             border-right:2px solid var(--borda)}
+  .quem-nome b{font-size:22px;font-weight:700;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .quem-nome em{font-style:normal;font-size:15px;color:var(--texto-3)}
+  .pista{position:relative}
+  .pista::before{content:"";position:absolute;inset:0;
+    background:repeating-linear-gradient(90deg,transparent 0,transparent calc(11.11% - 2px),
+      var(--painel-2) calc(11.11% - 2px),var(--painel-2) 11.11%)}
+
+  /* bloco limpo: só nome + etiqueta de perfil */
+  .bloco{position:absolute;top:4px;height:40px;padding:2px 6px 0;overflow:hidden}
+  .bloco b{display:block;font-size:19px;font-weight:700;white-space:nowrap;overflow:hidden;
+           text-overflow:ellipsis;line-height:1.15}
+  .bloco.faltou b{color:var(--vinho)}
+  .bloco.cancelada b{color:var(--texto-3);text-decoration:line-through}
+  .bloco.remarcada b{color:var(--texto-3)}
+  .bloco.relac b{font-weight:600;color:var(--texto-2)}
+  .bloco.agora{background:rgba(84,171,236,.16)}
+
+  .etq{display:inline-block;font-size:13px;font-weight:800;line-height:1;padding:3px 6px;
+       max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#141A18}
+  .etq-esc{background:var(--t-esc)}
+  .etq-prof{background:var(--t-prof)}
+  .etq-ini{background:var(--t-ini);color:#FFF3F2}
+  .etq-vazio{color:var(--texto-3);font-weight:500;font-size:13px;font-style:italic}
+  .etq-off{color:var(--texto-3);font-weight:600;font-size:13px}
+
+  .agulha{position:absolute;width:3px;background:var(--agora);z-index:4}
+  .agulha b{position:absolute;top:-24px;left:-31px;font-size:16px;font-weight:800;
+            background:var(--agora);color:#04191F;padding:2px 8px}
+
+  /* rodapé */
+  .rodape{display:grid;grid-template-columns:1.62fr 1fr;gap:20px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:right;padding:5px 10px;font-size:22px}
+  th{font-size:15px;font-weight:600;color:var(--texto-3);border-bottom:2px solid var(--borda);
+     padding-bottom:7px;line-height:1.15}
+  th:first-child,td:first-child{text-align:left}
+  td{border-bottom:1px solid var(--painel-2)}
+  td.nome{font-weight:700;font-size:23px}
+  td.pct{font-weight:800;font-size:26px}
+  tfoot td{border-bottom:0;border-top:2px solid var(--borda);font-weight:800;padding-top:8px}
+  .nulo{color:var(--texto-3);font-weight:500;font-size:18px}
+  .g{color:var(--selo)} .r{color:var(--vinho)} .p{color:var(--remarc)} .a{color:var(--ambar)}
+
+  .pend{border-color:var(--ambar);background:linear-gradient(180deg,#1E2318,var(--painel) 65%)}
+  .pend .top{display:flex;align-items:baseline;gap:14px}
+  .pend .top .n{font-size:60px;font-weight:900;color:var(--ambar);letter-spacing:-.04em;line-height:.9}
+  .pend .top .k{font-size:20px;font-weight:700;line-height:1.15;max-width:15ch}
+  .pend .li{display:grid;grid-template-columns:70px 1fr auto;gap:10px;align-items:center;
+            padding:5px 0;border-top:1px solid var(--painel-2);font-size:19px}
+  .pend .li .h{font-weight:800}
+  .pend .li .q{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .pend .li .c{font-size:16px;color:var(--texto-3)}
+
+  @media (prefers-reduced-motion:no-preference){
+    .bloco.agora{animation:bat 2.6s ease-in-out infinite}
+    @keyframes bat{0%,100%{background:rgba(84,171,236,.16)}50%{background:rgba(84,171,236,.05)}}
+  }
+</style>
+</head>
+<body>
+<div id="palco">
+  <header class="cab">
+    <div>
+      <h1>Reuniões de venda · closers B2C</h1>
+      <div class="dia"></div>
+    </div>
+    <div class="dir">
+      <div class="escala"><b id="escala"></b>closers em escala</div>
+      <div>
+        <div class="relogio" id="relogio"></div>
+        <div class="sinc">HubSpot ao vivo · sincronizado agora</div>
+      </div>
+    </div>
+  </header>
+
+  <section class="faixa">
+    <div class="bloco-p base-dia">
+      <div class="rot">Reuniões de venda de hoje</div>
+      <div class="n" id="baseN"></div>
+      <div class="det" id="baseDet"></div>
+    </div>
+
+    <div class="centro">
+      <div class="esq">
+        <div class="k">Taxa de comparecimento</div>
+        <div class="v" id="taxaV"></div>
+        <div class="d" id="taxaD"></div>
+        <div class="barra" id="taxaBarra"></div>
+        <div class="meta">meta interna 85% · calculado só sobre horários já vencidos</div>
+      </div>
+      <div class="lado">
+        <div class="cx sim"><div class="n" id="cSim"></div><div class="k">compareceram</div></div>
+        <div class="cx nao"><div class="n" id="cNao"></div><div class="k">não compareceram</div></div>
+      </div>
+    </div>
+
+    <div class="fora-col">
+      <div class="fora canc">
+        <div class="n" id="fCanc"></div>
+        <div class="k">canceladas</div>
+        <div class="d">saíram do dia e não voltam</div>
+      </div>
+      <div class="fora rem">
+        <div class="n" id="fRem"></div>
+        <div class="k">remarcadas</div>
+        <div class="d">voltam para a agenda em outra data</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="bloco-p trilha">
+    <div class="cab-trilha">
+      <h2>A agenda acompanhando o horário</h2>
+      <div class="leg">
+        <span class="etq etq-esc">Escala</span>
+        <span class="etq etq-prof">Profissionalize-se</span>
+        <span class="etq etq-ini">Iniciante</span>
+      </div>
+      <div class="leg dir-leg"><span>nome em vermelho: não compareceu</span></div>
+    </div>
+    <div id="trilha"></div>
+  </section>
+
+  <section class="rodape">
+    <div class="bloco-p" style="padding-top:14px">
+      <div class="rot" style="margin-bottom:8px">Reuniões de venda por closer</div>
+      <table id="placar">
+        <thead><tr>
+          <th scope="col">Closer</th>
+          <th scope="col">Na<br>agenda</th>
+          <th scope="col">A<br>registrar</th>
+          <th scope="col">Compa-<br>receram</th>
+          <th scope="col">Não com-<br>pareceram</th>
+          <th scope="col">Cance-<br>ladas</th>
+          <th scope="col">Remar-<br>cadas</th>
+          <th scope="col">Taxa</th>
+        </tr></thead>
+        <tbody></tbody><tfoot></tfoot>
+      </table>
+    </div>
+
+    <div class="bloco-p pend">
+      <div class="top">
+        <div class="n" id="pendN"></div>
+        <div class="k">reuniões de venda sem desfecho lançado</div>
+      </div>
+      <div id="pendL" style="margin-top:10px"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+function ajustar(){
+  const s=Math.min(innerWidth/1920,innerHeight/1080), p=document.getElementById('palco');
+  p.style.transform=`scale(${s})`;
+  p.style.left=(innerWidth-1920*s)/2+'px';
+  p.style.top=(innerHeight-1080*s)/2+'px';
+}
+addEventListener('resize',ajustar); ajustar();
+
+const AG=540,FIM=1080,VAO=FIM-AG;
+const m=(h,x)=>h*60+x, hhmm=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+const vg=x=>x.toString().replace('.',',');
+const pad=x=>String(x).padStart(2,'0');
+
+/* ---- dados reais (HubSpot via /api/reunioes-hoje), no mesmo formato do painel ---- */
+// minutos do dia em Brasília (UTC-3) a partir do ISO em UTC
+function brtMin(iso){ const d=new Date(iso); let x=d.getUTCHours()*60+d.getUTCMinutes()-180; if(x<0)x+=1440; return x; }
+function nowBrtMin(){ const d=new Date(); let x=d.getUTCHours()*60+d.getUTCMinutes()-180; if(x<0)x+=1440; return x; }
+const PERFIL_MAP={'escala':'esc','profissionalize-se':'prof','iniciante':'ini'};
+function estadoDe(r, now){
+  const o=r.outcome;
+  if(o==='COMPLETED') return 'compareceu';
+  if(o==='NO_SHOW')   return 'noShow';
+  if(o==='CANCELED')  return 'cancelada';
+  if(o==='RESCHEDULED')return 'remarcada';
+  const t=brtMin(r.inicio), tf=brtMin(r.fim);
+  if(now>=t && now<=tf) return 'agora';
+  if(now>t) return 'semDesfecho';
+  return 'futura';
+}
+// nome do closer: primeiro + último (cabe na coluna da trilha)
+function nomeCurto(nome){ const p=(nome||'').trim().split(/\s+/); return p.length<=2?nome:p[0]+' '+p[p.length-1]; }
+
+let rawB2C=[];   // reuniões cruas dos closers B2C
+let closers=[];
+
+/* relógio (Brasília) */
+(function tique(){
+  document.getElementById('relogio').innerHTML=
+    new Date().toLocaleTimeString('pt-BR',{timeZone:'America/Sao_Paulo',hour12:false})
+      .replace(/:(\d\d)$/,'<i>:$1</i>');
+  setTimeout(tique,1000);
+})();
+
+const est=r=>({compareceu:'',semDesfecho:'',noShow:'faltou',agora:'agora',futura:'',
+  cancelada:'cancelada',remarcada:'remarcada'})[r.estado];
+const ETQ={esc:['etq-esc','Escala'],prof:['etq-prof','Profissionalize-se'],ini:['etq-ini','Iniciante']};
+function etiqueta(r){
+  if(r.estado==='cancelada') return '<span class="etq-off">cancelada</span>';
+  if(r.estado==='remarcada') return '<span class="etq-off">remarcada</span>';
+  if(!r.perfil) return '<span class="etq-vazio">sem perfil</span>';
+  const [cls,txt]=ETQ[r.perfil];
+  return `<span class="etq ${cls}">${txt}</span>`;
+}
+const pos=t=>(t-AG)/VAO*100, larg=45/VAO*100;
+
+function pintar(){
+  const AGORA=nowBrtMin();
+  // dados reais -> mesmo shape do painel
+  closers=rawB2C.map(c=>({
+    nome:nomeCurto(c.nome),
+    reunioes:(c.reunioes||[]).map(r=>({
+      t:brtMin(r.inicio),
+      quem:(r.contato && r.contato!=='—') ? r.contato : (r.titulo||'—'),
+      venda:r.tp==='venda',
+      perfil:PERFIL_MAP[(r.perfil||'').trim().toLowerCase()]||null,
+      estado:estadoDe(r, AGORA)
+    }))
+  }));
+
+  const cap=s=>s?s.charAt(0).toUpperCase()+s.slice(1):s;
+  document.querySelector('.cab .dia').textContent=
+    cap(new Date().toLocaleDateString('pt-BR',{timeZone:'America/Sao_Paulo',weekday:'long',day:'numeric',month:'long'}));
+
+  const todas=closers.flatMap(c=>c.reunioes.map(r=>({...r,closer:c.nome})));
+  const vendas=todas.filter(r=>r.venda);
+  const n=(a,...es)=>a.filter(r=>es.includes(r.estado)).length;
+
+  const naAgenda=vendas.length;
+  const canceladas=n(vendas,'cancelada'), remarcadas=n(vendas,'remarcada');
+  const valem=naAgenda-canceladas-remarcadas;
+  const compareceu=n(vendas,'compareceu','semDesfecho');
+  const noShow=n(vendas,'noShow');
+  const vencidas=compareceu+noShow;
+  const porVir=n(vendas,'futura','agora');
+  const semDesfecho=n(vendas,'semDesfecho');
+  const taxa=vencidas?Math.round(compareceu/vencidas*100):0;
+
+  document.getElementById('escala').textContent=closers.length;
+
+  document.getElementById('baseN').innerHTML=valem+' <em>de '+naAgenda+'</em>';
+  document.getElementById('baseDet').innerHTML=`
+    <div><span>Horários já vencidos</span><b>${vencidas}</b></div>
+    <div><span>Ainda vão acontecer</span><b>${porVir}</b></div>
+    <div><span>Fora do dia</span><b>${canceladas+remarcadas}</b></div>`;
+
+  document.getElementById('taxaV').textContent=taxa+'%';
+  document.getElementById('taxaD').textContent=`${compareceu} de ${vencidas} reuniões de venda já vencidas`;
+  document.getElementById('taxaBarra').innerHTML=
+    `<i style="width:${vencidas?compareceu/vencidas*100:0}%;background:var(--selo)"></i>
+     <i style="width:${vencidas?noShow/vencidas*100:0}%;background:var(--vinho)"></i>`;
+  document.getElementById('cSim').textContent=compareceu;
+  document.getElementById('cNao').textContent=noShow;
+  document.getElementById('fCanc').textContent=canceladas;
+  document.getElementById('fRem').textContent=remarcadas;
+
+  /* timeline */
+  let grade=''; for(let h=9;h<=18;h++) grade+=`<i style="left:${pos(m(h,0))}%">${h}h</i>`;
+  const ordem=[...closers].sort((a,b)=>
+    b.reunioes.filter(r=>r.venda).length-a.reunioes.filter(r=>r.venda).length);
+  const pistas=ordem.map(c=>{
+    const blocos=c.reunioes.map(r=>`
+      <div class="bloco ${est(r)} ${r.venda?'':'relac'}" style="left:${pos(r.t)}%;width:${larg}%">
+        <b>${r.quem.split(' ')[0]}</b>${etiqueta(r)}
+      </div>`).join('');
+    return `<div class="pista-linha">
+        <div class="quem-nome"><b>${c.nome}</b>
+          <em>${c.reunioes.filter(r=>r.venda).length} de venda · ${c.reunioes.length} no total</em></div>
+        <div class="pista">${blocos}</div>
+      </div>`;
+  }).join('');
+  document.getElementById('trilha').innerHTML=
+    `<div class="grade">${grade}</div>
+     <div style="position:relative">${pistas}
+       <div class="agulha" style="left:calc(240px + (100% - 240px) * ${pos(AGORA)/100});
+            top:-24px;height:${ordem.length*48+24}px"><b>${hhmm(AGORA)}</b></div>
+     </div>`;
+
+  /* placar */
+  const linhas=closers.map(c=>{
+    const v=c.reunioes.filter(r=>r.venda);
+    const comp=n(v,'compareceu','semDesfecho'), ns=n(v,'noShow');
+    return {nome:c.nome,ag:v.length,reg:n(v,'semDesfecho'),venc:comp+ns,comp,ns,
+            canc:n(v,'cancelada'),rem:n(v,'remarcada')};
+  }).sort((a,b)=>(b.venc?b.comp/b.venc:-1)-(a.venc?a.comp/a.venc:-1)||b.ag-a.ag);
+  const z=v=>v||'<span class="nulo">0</span>';
+
+  document.querySelector('#placar tbody').innerHTML=linhas.map(l=>`
+    <tr>
+      <td class="nome">${l.nome}</td><td>${z(l.ag)}</td>
+      <td class="${l.reg?'a':''}">${z(l.reg)}</td>
+      <td class="g">${z(l.comp)}</td><td class="${l.ns?'r':''}">${z(l.ns)}</td>
+      <td class="${l.canc?'r':''}">${z(l.canc)}</td><td class="${l.rem?'p':''}">${z(l.rem)}</td>
+      <td class="pct" style="color:${!l.venc?'var(--texto-3)':(l.comp/l.venc>=.85?'var(--selo)':'var(--ambar)')}">
+        ${l.venc?Math.round(l.comp/l.venc*100)+'%':'—'}</td>
+    </tr>`).join('');
+  document.querySelector('#placar tfoot').innerHTML=`
+    <tr><td>Time B2C</td><td>${naAgenda}</td><td class="a">${semDesfecho}</td>
+      <td class="g">${compareceu}</td><td class="r">${noShow}</td>
+      <td class="r">${canceladas}</td><td class="p">${remarcadas}</td>
+      <td class="pct" style="color:${taxa>=85?'var(--selo)':'var(--ambar)'}">${taxa}%</td></tr>`;
+
+  /* sem desfecho */
+  document.getElementById('pendN').textContent=semDesfecho;
+  document.getElementById('pendL').innerHTML=vendas
+    .filter(r=>r.estado==='semDesfecho').sort((a,b)=>a.t-b.t)
+    .map(r=>`<div class="li">
+        <div class="h">${hhmm(r.t)}</div><div class="q">${r.quem}</div>
+        <div class="c">${r.closer.split(' ')[0]} · há ${vg(Math.round((AGORA-r.t-45)/6)/10)} h</div>
+      </div>`).join('');
+}
+
+async function carregar(){
+  try{
+    const res=await fetch('/api/reunioes-hoje',{cache:'no-store'});
+    const data=await res.json();
+    if(data && Array.isArray(data.closers)) rawB2C=data.closers.filter(c=>c.segmento==='B2C');
+  }catch(e){}
+  pintar();
+}
+carregar();
+setInterval(carregar,60000);   // re-sincroniza com o HubSpot a cada 60s
+</script>
+</body>
+</html>
