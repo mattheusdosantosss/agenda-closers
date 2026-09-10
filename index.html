@@ -316,12 +316,13 @@
   .squad-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:11px;overflow:hidden}
   /* cards do closer no B2B: menores (aperta stats/cells) */
   .squad-body .card{padding:11px 12px}
-  .squad-body .who{margin-bottom:8px;gap:8px}
+  .squad-body .who{margin-bottom:7px;gap:8px}
   .squad-body .who .name{font-size:17px}
-  .squad-body .stats{gap:4px;margin-bottom:8px}
-  .squad-body .stat{padding:6px 2px}
-  .squad-body .stat .n{font-size:19px}
-  .squad-body .stat .t{font-size:8px;letter-spacing:.03em}
+  /* stats sutis (pontinho + número), uma linha só */
+  .mini-stats{display:flex;flex-wrap:wrap;gap:11px;margin-bottom:8px}
+  .mini-stats span{display:inline-flex;align-items:center;gap:4px;font-family:var(--num);font-weight:800;font-size:13.5px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .mini-stats i{width:6px;height:6px;border-radius:2px;background:var(--c)}
+  .mini-stats em{font-family:var(--inter);font-style:normal;font-weight:600;font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.03em}
   .squad-body .cell{grid-template-columns:48px 1fr auto;gap:8px;padding:6px 6px}
   .squad-body .cell .hr{font-size:14px}
   .squad-body .cell .title{font-size:13px}
@@ -817,18 +818,28 @@ function cardCloser(c, r, agora, opts={}){
   const agendaHTML = linhas ? `<div class="agenda${dens}">${linhas}</div>` : `<div class="agenda empty-day">${vazio}</div>`;
   const badgeCls = opts.lider ? 'lider' : (emAndamento?'now':'free');
   const badgeTxt = opts.lider ? 'Líder' : (emAndamento?'Ocupado':'Disponível');
+  // stats: caixotes (B2C) ou linha sutil de pontinhos (B2B, muitos closers -> libera espaço p/ reuniões)
+  const statsHTML = opts.mini
+    ? `<div class="mini-stats">
+        <span style="--c:var(--sched)"><i></i>${r.agendadas}<em>ag</em></span>
+        <span style="--c:var(--done)"><i></i>${r.realizadas}<em>re</em></span>
+        <span style="--c:var(--now)"><i></i>${r.agora}<em>agora</em></span>
+        <span style="--c:var(--next)"><i></i>${r.futuras}<em>fut</em></span>
+        <span style="--c:var(--miss)"><i></i>${r.perdidas}<em>ns</em></span>
+      </div>`
+    : `<div class="stats">
+        <div class="stat" style="--c:var(--sched)"><div class="n">${r.agendadas}</div><div class="t">Agend.</div></div>
+        <div class="stat" style="--c:var(--done)"><div class="n">${r.realizadas}</div><div class="t">Realiz.</div></div>
+        <div class="stat" style="--c:var(--now)"><div class="n">${r.agora}</div><div class="t">Agora</div></div>
+        <div class="stat" style="--c:var(--next)"><div class="n">${r.futuras}</div><div class="t">Futuras</div></div>
+        <div class="stat" style="--c:var(--miss)"><div class="n">${r.perdidas}</div><div class="t">No-show</div></div>
+      </div>`;
   return `<div class="card ${emAndamento?'is-now':''} ${opts.lider?'is-lider':''}">
     <div class="who">
       <div><div class="name">${c.nomeCurto||c.nome}</div></div>
       <div class="badge ${badgeCls}"><span class="b-dot"></span>${badgeTxt}</div>
     </div>
-    <div class="stats">
-      <div class="stat" style="--c:var(--sched)"><div class="n">${r.agendadas}</div><div class="t">Agend.</div></div>
-      <div class="stat" style="--c:var(--done)"><div class="n">${r.realizadas}</div><div class="t">Realiz.</div></div>
-      <div class="stat" style="--c:var(--now)"><div class="n">${r.agora}</div><div class="t">Agora</div></div>
-      <div class="stat" style="--c:var(--next)"><div class="n">${r.futuras}</div><div class="t">Futuras</div></div>
-      <div class="stat" style="--c:var(--miss)"><div class="n">${r.perdidas}</div><div class="t">No-show</div></div>
-    </div>
+    ${statsHTML}
     ${agendaHTML}
   </div>`;
 }
@@ -932,7 +943,7 @@ function renderSquads(resumos, agora){
     const nomeTime = (lider?.c.nomeCurto || (lider?.c.nome||'').split(' ')[0]) || `Time ${si+1}`;
     const totAg = membros.reduce((s,m)=>s+m.r.agendadas,0);
     const totRe = membros.reduce((s,m)=>s+m.r.realizadas,0);
-    const cards = membros.map(({c,r})=>cardCloser(c, r, agora, {lider:c.lider, max:3})).join('');
+    const cards = membros.map(({c,r})=>cardCloser(c, r, agora, {lider:c.lider, mini:true, max:4})).join('');
     return `<div class="squad">
       <div class="squad-h">
         <span class="team">Time ${nomeTime}</span>
