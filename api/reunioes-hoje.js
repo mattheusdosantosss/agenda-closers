@@ -364,9 +364,9 @@ async function contatosDasMeetings(token, meetingIds) {
   return info;
 }
 
-// "perfil" e "etiquetas" são propriedades do NEGÓCIO (deal). meeting -> deal -> {perfil, etiquetas}.
+// "perfil", "etiquetas" e "pontuacao_leadscore__faixas" são do NEGÓCIO (deal). meeting -> deal -> {...}.
 async function perfisDasMeetings(token, meetingIds) {
-  const info = new Map(); // meetingId -> {perfil, etiquetas}
+  const info = new Map(); // meetingId -> {perfil, etiquetas, faixa}
   if (!meetingIds.length) return info;
 
   const meetingToDeal = new Map();
@@ -396,7 +396,7 @@ async function perfisDasMeetings(token, meetingIds) {
       const res = await fetch(`${BASE}/crm/v3/objects/deals/batch/read`, {
         method: "POST",
         headers: headers(token),
-        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "etiquetas"] }),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "etiquetas", "pontuacao_leadscore__faixas"] }),
         cache: "no-store",
       });
       if (!res.ok) return;
@@ -404,11 +404,12 @@ async function perfisDasMeetings(token, meetingIds) {
       for (const d of data.results ?? []) propsPorDeal.set(String(d.id), {
         perfil: (d.properties?.perfil ?? "").trim(),
         etiquetas: (d.properties?.etiquetas ?? "").trim(),
+        faixa: (d.properties?.pontuacao_leadscore__faixas ?? "").trim(),
       });
     })
   );
 
-  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", etiquetas: "" });
+  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", etiquetas: "", faixa: "" });
   return info;
 }
 
@@ -492,6 +493,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
       ...categoriaTipo(tipo), // tp (venda|rel|follow|reprog|sem|outro) + org (SDR|Closer|Merlin|IA)
       perfil: (perfis.get(String(m.id)) || {}).perfil || "",
       etiquetas: (perfis.get(String(m.id)) || {}).etiquetas || "",
+      faixa: (perfis.get(String(m.id)) || {}).faixa || "",
       inicio: ini.toISOString(),
       fim: fim.toISOString(),
       // conta tudo que foi agendado; cancelada e no-show são circunstanciais

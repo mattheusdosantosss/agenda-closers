@@ -201,6 +201,8 @@
   .cell .side{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:3px}
   .cell .ls{font-family:var(--inter);font-weight:700;font-size:12.5px;color:var(--ink);background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:8px;padding:2px 8px;white-space:nowrap;line-height:1.15}
   .cell .ls::before{content:"LS ";font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
+  .cell .fx{font-family:var(--inter);font-weight:700;font-size:11.5px;color:var(--blue);background:rgba(90,169,255,.12);border:1px solid rgba(90,169,255,.32);border-radius:8px;padding:1px 7px;white-space:nowrap;line-height:1.15}
+  .cell .fx::before{content:"F ";font-size:9px;font-weight:700;color:var(--dim);letter-spacing:.04em}
   .cell+.cell::before{content:"";position:absolute;left:8px;right:8px;top:0;height:1px;background:var(--line)}
   .cell .lead{text-align:right;min-width:0}
   .cell .hr{font-family:var(--inter);font-weight:700;font-size:16px;font-variant-numeric:tabular-nums;color:var(--muted);line-height:1.1}
@@ -518,7 +520,8 @@ function gerarDadosDemo(){
   // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
   const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"venda",org:"Outbound Instagram"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
   const DEMO_ETQ=["Recompra;VIP","","Indicação","Reagendou;Urgente","","Quente"];
-  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); m.etiquetas=DEMO_ETQ[ti%DEMO_ETQ.length]; }));
+  const DEMO_FX=["Entre 55 e 74 pontos","","Acima de 75 pontos","Abaixo de 40 pontos","Entre 40 e 54 pontos",""];
+  let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); m.etiquetas=DEMO_ETQ[ti%DEMO_ETQ.length]; m.faixa=DEMO_FX[ti%DEMO_FX.length]; }));
 
   return [
     ...b2b.map(c => ({...c, segmento:"B2B"})),
@@ -733,10 +736,21 @@ function tipoChip(m){
   const lb = (m.rotulo||'').trim() || ((TIPO_LB[m.tp||'sem']||'Outro')+org);
   return `<span class="tp"><i style="background:${tipoCor(m)}"></i>${lb}</span>`;
 }
-// lado direito da célula: leadscore (contato)
+// "Entre 55 e 74 pontos" -> "55–74" ; "Acima de 75 pontos" -> "≥75" ; "Abaixo de 40" -> "<40"
+function faixaCurta(v){
+  if(!v) return '';
+  const n=v.match(/\d+/g);
+  if(/(acima|maior)/i.test(v) && n) return '≥'+n[0];
+  if(/(abaixo|menos|menor)/i.test(v) && n) return '<'+n[n.length-1];
+  if(n && n.length>=2) return n[0]+'–'+n[1];
+  return v.length>10 ? v.slice(0,10)+'…' : v;
+}
+// lado direito da célula: leadscore (nº, contato) + faixa do leadscore (negócio) — comparativo IA × closer
 function sideCel(m){
   const ls=(m.leadscore||'').trim();
-  return ls ? `<div class="side"><span class="ls">${ls}</span></div>` : '';
+  const fx=faixaCurta((m.faixa||'').trim());
+  if(!ls && !fx) return '';
+  return `<div class="side">${ls?`<span class="ls">${ls}</span>`:''}${fx?`<span class="fx" title="Faixa do leadscore (${(m.faixa||'').trim()})">${fx}</span>`:''}</div>`;
 }
 
 // nº de colunas ideal para caber tudo numa tela, conforme a quantidade de closers
