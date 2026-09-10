@@ -208,9 +208,9 @@
   .cell .body{min-width:0}
   .cell .title{font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
   .cell .meta{display:flex;align-items:center;gap:8px;margin-top:4px;min-width:0}
-  .cell .meta .pf{font-size:12px;color:#ffcf99;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  /* etiquetas (negócio) — linha própria abaixo do tipo/perfil; uma linha, corta o excedente */
-  .cell .etqs{display:flex;gap:6px;margin-top:5px;overflow:hidden}
+  .cell .pf{flex:0 0 auto;font-size:12px;color:#ffcf99;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:170px}
+  /* perfil + etiquetas: linha PRÓPRIA abaixo da origem; uma linha, corta o excedente (perfil vem 1º, nunca é cortado) */
+  .cell .attrs{display:flex;align-items:center;gap:6px;margin-top:5px;overflow:hidden}
   .cell .etq{flex:0 0 auto;font-size:11px;font-weight:600;color:var(--muted);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:6px;padding:1px 8px;white-space:nowrap;max-width:160px;overflow:hidden;text-overflow:ellipsis}
   .cell.now{background:rgba(255,106,26,.10)}
   .cell.now .hr,.cell.now .due{color:var(--now)} .cell.now .due{font-weight:700}
@@ -890,13 +890,15 @@ function render(dados){
         const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
         const perfil = (m.perfil||'').trim();
         const etqs = (m.etiquetas||'').split(';').map(s=>s.trim()).filter(Boolean);
-        const etqLine = etqs.length ? `<div class="etqs">${etqs.map(e=>`<span class="etq">${e}</span>`).join('')}</div>` : '';
+        // perfil + etiquetas numa linha PRÓPRIA, abaixo da origem (senão a origem longa corta o perfil)
+        const attrs = (perfil || etqs.length)
+          ? `<div class="attrs">${perfil?`<span class="pf">${perfil}</span>`:''}${etqs.map(e=>`<span class="etq">${e}</span>`).join('')}</div>` : '';
         const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
         return `<a class="cell ${cls}"${href}>
           <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
           <div class="body"><div class="title">${nome}</div>
-            <div class="meta">${tipoChip(m)}${perfil?`<span class="pf">${perfil}</span>`:''}</div>
-            ${etqLine}
+            <div class="meta">${tipoChip(m)}</div>
+            ${attrs}
           </div>
           ${sideCel(m)}
         </a>`;
