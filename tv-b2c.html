@@ -264,8 +264,16 @@ function estadoDe(r, now){
   if(now>t) return 'semDesfecho';
   return 'futura';
 }
-// nome do closer abreviado: primeiro + último (a pedido, p/ caber na coluna da trilha)
-function nomeCurto(nome){ const p=(nome||'').trim().split(/\s+/); return p.length<=2?nome:p[0]+' '+p[p.length-1]; }
+// nome do closer abreviado: 1º nome (mantém composto tipo "João Paulo")
+function nomeCurto(nome){
+  const p=(nome||'').trim().split(/\s+/);
+  if(p.length<=1) return nome;
+  const comp=new Set(['joao','maria','ana','jose','luiz','luis','pedro','paulo','carlos','marcos','luiza']);
+  const con=['de','da','do','dos','das','e'];
+  const sa=s=>s.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+  if(comp.has(sa(p[0])) && p[1] && !con.includes(p[1].toLowerCase())) return p[0]+' '+p[1];
+  return p[0];
+}
 
 let rawB2C=[];   // reuniões cruas dos closers B2C
 let closers=[];

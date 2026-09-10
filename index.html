@@ -594,6 +594,26 @@ const capitaliza = s => s ? s.charAt(0).toUpperCase()+s.slice(1) : s;
 const ehMesmoDia = (a,b) => a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();
 const el = (html)=>{const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstChild;};
 
+// abrevia o nome do closer: 1º nome (mantém composto tipo "João Paulo"); desambigua com sobrenome se colidir
+const NOMES_COMPOSTOS = new Set(['joao','maria','ana','jose','luiz','luis','pedro','paulo','carlos','antonio','marcos','luiza','joana','anaclara']);
+const CONECTORES = ['de','da','do','dos','das','e'];
+const semAc = s => String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+function primeiroNome(nome){
+  const p=(nome||'').trim().split(/\s+/);
+  if(p.length<=1) return nome||'';
+  if(NOMES_COMPOSTOS.has(semAc(p[0])) && p[1] && !CONECTORES.includes(p[1].toLowerCase())) return p[0]+' '+p[1];
+  return p[0];
+}
+// define c.nomeCurto para uma lista de closers, desambiguando nomes iguais com o último sobrenome
+function abreviarNomes(closers){
+  const base = closers.map(c=>primeiroNome(c.nome));
+  const cont={}; base.forEach(b=>cont[semAc(b)]=(cont[semAc(b)]||0)+1);
+  closers.forEach((c,i)=>{
+    if(cont[semAc(base[i])]>1){ const p=c.nome.trim().split(/\s+/); c.nomeCurto = base[i]+' '+p[p.length-1]; }
+    else c.nomeCurto = base[i];
+  });
+}
+
 // agrupa as reuniões do closer por dia (usado no resumo de Semana/Mês)
 function agrupaPorDia(reunioes, agora){
   const byDay = new Map();
@@ -747,6 +767,7 @@ function render(dados){
 
   // filtra pelo segmento ativo (B2B / B2C)
   const doSeg = dados.filter(c => c.segmento === state.seg);
+  abreviarNomes(doSeg); // define c.nomeCurto (1º nome, desambiguado)
 
   // atualiza abas (segmento + período) e subtítulo
   renderDiasTabs(); // garante que Seg..Sex reflitam a semana em foco
@@ -892,7 +913,7 @@ function render(dados){
     const card = el(`<div class="card ${emAndamento?'is-now':''}">
       <div class="who">
         <div>
-          <div class="name">${c.nome}</div>
+          <div class="name">${c.nomeCurto||c.nome}</div>
         </div>
         <div class="badge ${emAndamento?'now':'free'}">
           <span class="b-dot"></span>${emAndamento?'Ocupado':'Disponível'}
@@ -929,7 +950,7 @@ function renderSquads(resumos, agora){
   grid.innerHTML = ordenados.map(([si, membros])=>{
     membros.sort((a,b)=> (b.c.lider?1:0)-(a.c.lider?1:0)); // líder primeiro
     const lider = membros.find(m=>m.c.lider) || membros[0];
-    const nomeTime = (lider?.c.nome||'').split(' ')[0] || `Time ${si+1}`;
+    const nomeTime = (lider?.c.nomeCurto || (lider?.c.nome||'').split(' ')[0]) || `Time ${si+1}`;
     const totAg = membros.reduce((s,m)=>s+m.r.agendadas,0);
     const totRe = membros.reduce((s,m)=>s+m.r.realizadas,0);
     return `<div class="squad">
@@ -969,7 +990,7 @@ function pessoaBlock(c, r, agora){
   }).join('') : `<div class="vazio">Livre hoje</div>`;
   return `<div class="pessoa ${c.lider?'lider':''}">
     <div class="p-h">
-      <span class="p-nome">${c.nome}</span>${c.lider?'<span class="p-lider">Líder</span>':''}
+      <span class="p-nome">${c.nomeCurto||c.nome}</span>${c.lider?'<span class="p-lider">Líder</span>':''}
       <span class="p-cnt" title="realizadas / agendadas"><b class="done">${r.realizadas}</b><i>/</i><b>${r.agendadas}</b></span>
     </div>
     <div class="ag cells">${linhas}</div>
