@@ -102,6 +102,11 @@ function categoriaTipo(tipo) {
   if (t.includes("relacionamento")) return { tp: "rel", org: "" };
   if (t.includes("followup")) return { tp: "follow", org: "" };
   if (t.includes("reprogramada")) return { tp: "reprog", org: "" };
+  // outbound (prospecção ativa) = reunião de VENDA, com a origem preservada (ex.: "Outbound Instagram")
+  if (t.includes("outbound")) {
+    const org = String(tipo || "").replace(/^\s*b2[bc]\s*\|\s*/i, "").trim() || "Outbound";
+    return { tp: "venda", org };
+  }
   if (t.includes("venda") || t.includes("marcacao")) {
     let org = "";
     if (t.includes("sdr")) org = "SDR";
