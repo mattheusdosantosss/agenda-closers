@@ -305,27 +305,28 @@
   .chip b{font-family:var(--num);font-weight:700;font-size:24px;line-height:.85;color:var(--c);font-variant-numeric:tabular-nums}
   .chip span{font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;line-height:1.1;white-space:normal;overflow-wrap:anywhere;max-width:72px}
 
-  /* B2B: 2 faixas de time empilhadas, cada uma com os MESMOS cards do B2C */
-  .grid.squads{display:flex;flex-direction:column;gap:16px;grid-template-columns:none;grid-template-rows:none}
-  .time{flex:1;min-height:0;display:flex;flex-direction:column}
-  .time-h{display:flex;align-items:center;gap:14px;padding:0 4px 9px;flex:0 0 auto}
-  .time-h .team{font-family:var(--num);font-weight:800;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
-  .time-h .sum{margin-left:auto;display:flex;gap:16px;font-family:var(--inter);font-size:11.5px;color:var(--dim)}
-  .time-h .sum b{font-family:var(--num);font-weight:800;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:5px}
-  .time-h .sum .re b{color:var(--done)}
-  .time-grid{flex:1;min-height:0;display:grid;grid-auto-rows:1fr;gap:13px}
-  /* cards do B2B são mais estreitos (todos numa linha) — aperta stats/padding p/ caber tudo */
-  .time-grid .card{padding:12px 12px}
-  .time-grid .who{margin-bottom:9px;gap:8px}
-  .time-grid .who .name{font-size:18px}
-  .time-grid .stats{gap:4px;margin-bottom:9px}
-  .time-grid .stat{padding:7px 2px}
-  .time-grid .stat .n{font-size:20px}
-  .time-grid .stat .t{font-size:8px;letter-spacing:.04em}
-  .time-grid .cell{grid-template-columns:50px 1fr auto;gap:9px;padding:7px 6px}
-  .time-grid .cell .hr{font-size:15px}
-  .time-grid .cell .title{font-size:13.5px}
-  .time-grid .cell .ls{font-size:11px;padding:1px 6px}
+  /* B2B: 2 quadros de time lado a lado; dentro, cards do closer em grade 2 colunas */
+  .grid.squads{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:minmax(0,1fr);gap:16px}
+  .squad{background:var(--panel);border:1px solid var(--line);border-radius:18px;display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  .squad-h{display:flex;align-items:center;gap:14px;padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);flex:0 0 auto}
+  .squad-h .team{font-family:var(--num);font-weight:800;font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+  .squad-h .sum{margin-left:auto;display:flex;gap:16px;font-family:var(--inter);font-size:11.5px;color:var(--dim)}
+  .squad-h .sum b{font-family:var(--num);font-weight:800;font-size:15px;color:var(--ink);font-variant-numeric:tabular-nums;margin-right:5px}
+  .squad-h .sum .re b{color:var(--done)}
+  .squad-body{flex:1;min-height:0;display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr;gap:10px;padding:11px;overflow:hidden}
+  /* cards do closer no B2B: menores (aperta stats/cells) */
+  .squad-body .card{padding:11px 12px}
+  .squad-body .who{margin-bottom:8px;gap:8px}
+  .squad-body .who .name{font-size:17px}
+  .squad-body .stats{gap:4px;margin-bottom:8px}
+  .squad-body .stat{padding:6px 2px}
+  .squad-body .stat .n{font-size:19px}
+  .squad-body .stat .t{font-size:8px;letter-spacing:.03em}
+  .squad-body .cell{grid-template-columns:48px 1fr auto;gap:8px;padding:6px 6px}
+  .squad-body .cell .hr{font-size:14px}
+  .squad-body .cell .title{font-size:13px}
+  .squad-body .cell .ls{font-size:11px;padding:1px 6px}
+  .squad-body .agenda.empty-day{font-size:13px}
   /* selo de Líder + card do líder */
   .badge.lider{color:#0b0b0e;background:var(--orange)}
   .badge.lider .b-dot{background:#0b0b0e}
@@ -916,8 +917,6 @@ function render(dados){
 function renderSquads(resumos, agora){
   const grid = document.getElementById('grid');
   grid.className = 'grid squads';
-  grid.style.gridTemplateColumns = '';
-  grid.style.gridTemplateRows = '';
   const porSquad = new Map();
   resumos.forEach(x=>{
     const si = (x.c.squad==null) ? 99 : x.c.squad;
@@ -925,21 +924,22 @@ function renderSquads(resumos, agora){
     porSquad.get(si).push(x);
   });
   const ordenados = [...porSquad.entries()].sort((a,b)=>a[0]-b[0]);
+  grid.style.gridTemplateColumns = `repeat(${ordenados.length},minmax(0,1fr))`; // 1 quadro por time, lado a lado
+  grid.style.gridTemplateRows = 'minmax(0,1fr)';
   grid.innerHTML = ordenados.map(([si, membros])=>{
     membros.sort((a,b)=> (b.c.lider?1:0)-(a.c.lider?1:0)); // líder primeiro
     const lider = membros.find(m=>m.c.lider) || membros[0];
     const nomeTime = (lider?.c.nomeCurto || (lider?.c.nome||'').split(' ')[0]) || `Time ${si+1}`;
     const totAg = membros.reduce((s,m)=>s+m.r.agendadas,0);
     const totRe = membros.reduce((s,m)=>s+m.r.realizadas,0);
-    const cols = membros.length; // todos os closers do time numa linha só (cards altos = mostram stats + reuniões)
-    const cards = membros.map(({c,r})=>cardCloser(c, r, agora, {lider:c.lider, max:5})).join('');
-    return `<section class="time">
-      <div class="time-h">
+    const cards = membros.map(({c,r})=>cardCloser(c, r, agora, {lider:c.lider, max:3})).join('');
+    return `<div class="squad">
+      <div class="squad-h">
         <span class="team">Time ${nomeTime}</span>
         <span class="sum"><span><b>${membros.length}</b>closers</span><span><b>${totAg}</b>reuniões</span><span class="re"><b>${totRe}</b>realiz.</span></span>
       </div>
-      <div class="time-grid" style="grid-template-columns:repeat(${cols},minmax(0,1fr))">${cards}</div>
-    </section>`;
+      <div class="squad-body">${cards}</div>
+    </div>`;
   }).join('');
 }
 
