@@ -95,7 +95,7 @@ function tipoBloqueadoB2C(tipo) {
 //   "B2C | Marcação Merlin" / "Marcação IA"            -> venda (Merlin/IA)
 //   "Reunião de Relacionamento"                        -> rel
 //   "B2C | Reunião de FollowUp"                         -> follow
-//   (vazio) -> sem ; qualquer outro -> outro
+//   (vazio) -> sem ; qualquer outro -> outro, mas preservando o rótulo real (ex.: "Outbound Instagram")
 function categoriaTipo(tipo) {
   const t = semAcento(tipo);
   if (!t) return { tp: "sem", org: "" };
@@ -110,7 +110,9 @@ function categoriaTipo(tipo) {
     else if (t.includes("ia")) org = "IA";
     return { tp: "venda", org };
   }
-  return { tp: "outro", org: "" };
+  // origem desconhecida: mostra o nome real (tira prefixo "B2C | " / "B2B | " se houver)
+  const rotulo = String(tipo || "").replace(/^\s*b2[bc]\s*\|\s*/i, "").trim() || "Outro";
+  return { tp: "outro", org: "", rotulo };
 }
 
 function headers(token) {

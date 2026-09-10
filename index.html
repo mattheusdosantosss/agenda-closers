@@ -527,7 +527,7 @@ function gerarDadosDemo(){
   const PERFIS=["Iniciante","Profissionalize-se","Escala"];
   let pi=0; b2c.forEach(c=>c.reunioes.forEach((m,k)=>{ if(k%2===0) m.perfil=PERFIS[pi++%PERFIS.length]; }));
   // tipo fictício no demo B2C (só p/ visualizar chip/contador no fallback)
-  const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"reprog"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
+  const DEMO_TP=[{tp:"venda",org:"SDR"},{tp:"rel"},{tp:"venda",org:"Merlin"},{tp:"follow"},{tp:"outro",rotulo:"Outbound Instagram"},{tp:"venda",org:"Closer"},{tp:"sem"},{tp:"venda",org:"IA"}];
   const DEMO_ETQ=["Recompra;VIP","","Indicação","Reagendou;Urgente","","Quente"];
   let ti=0; b2c.forEach(c=>c.reunioes.forEach(m=>{ Object.assign(m, DEMO_TP[ti++%DEMO_TP.length]); m.leadscore=String(15+((ti*23)%85)); m.etiquetas=DEMO_ETQ[ti%DEMO_ETQ.length]; }));
 
@@ -715,11 +715,14 @@ renderDiasTabs();
 
 // tipos de reunião (categoria de negócio) — rótulo + cor do pontinho
 const TIPO_LB ={venda:"Venda",rel:"Relacionamento",follow:"Follow-up",reprog:"Reprogramada",sem:"Sem tipo",outro:"Outro"};
-const TIPO_COR={venda:"#ffb703",rel:"#5aa9ff",follow:"#ff8f6b",reprog:"#c08cff",sem:"#8a8a93",outro:"#8a8a93"};
+const TIPO_COR={venda:"#ffb703",rel:"#5aa9ff",follow:"#ff8f6b",reprog:"#c08cff",sem:"#8a8a93",outro:"#4fd1c5"};
+const tipoCor = m => TIPO_COR[m.tp||'sem'] || '#8a8a93';
+// rótulo da CATEGORIA (contador): agrupa venda, mas preserva origem real desconhecida (ex.: Outbound Instagram)
+const tipoCat = m => (m.rotulo||'').trim() || TIPO_LB[m.tp||'sem'] || 'Outro';
 function tipoChip(m){
-  const k = m.tp || 'sem';
   const org = m.org ? ' · '+m.org : '';
-  return `<span class="tp"><i style="background:${TIPO_COR[k]||'#8a8a93'}"></i>${(TIPO_LB[k]||'Outro')}${org}</span>`;
+  const lb = (m.rotulo||'').trim() || ((TIPO_LB[m.tp||'sem']||'Outro')+org);
+  return `<span class="tp"><i style="background:${tipoCor(m)}"></i>${lb}</span>`;
 }
 // lado direito da célula: leadscore (contato)
 function sideCel(m){
@@ -788,11 +791,11 @@ function render(dados){
   kpis.appendChild(left);
   // barra direita: contador por TIPO de reunião (só B2C)
   if(state.seg==='B2C'){
-    const cont={};
-    doSeg.forEach(c=>c.reunioes.forEach(m=>{ const k=m.tp||'sem'; cont[k]=(cont[k]||0)+1; }));
+    const cont={}, cor={};
+    doSeg.forEach(c=>c.reunioes.forEach(m=>{ const lb=tipoCat(m); cont[lb]=(cont[lb]||0)+1; cor[lb]=tipoCor(m); }));
     const right=document.createElement('div'); right.className='mbar types';
-    Object.keys(TIPO_LB).filter(k=>cont[k]).forEach(k=>{
-      right.appendChild(el(`<div class="mcell"><div class="v"><i style="background:${TIPO_COR[k]}"></i><b>${cont[k]}</b></div><span>${TIPO_LB[k]}</span></div>`));
+    Object.keys(cont).sort((a,b)=>cont[b]-cont[a]).forEach(lb=>{
+      right.appendChild(el(`<div class="mcell"><div class="v"><i style="background:${cor[lb]}"></i><b>${cont[lb]}</b></div><span>${lb}</span></div>`));
     });
     if(right.children.length) kpis.appendChild(right);
   }
