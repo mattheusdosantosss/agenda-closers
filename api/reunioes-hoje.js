@@ -108,11 +108,12 @@ function categoriaTipo(tipo) {
     return { tp: "venda", org };
   }
   if (t.includes("venda") || t.includes("marcacao")) {
-    let org = "";
-    if (t.includes("sdr")) org = "SDR";
-    else if (t.includes("closer")) org = "Closer";
-    else if (t.includes("merlin")) org = "Merlin";
-    else if (t.includes("ia")) org = "IA";
+    // extrai o marcador REAL: "...(marcada por/pelo/pela X)" ou "Marcação X".
+    // (nada de includes("ia") — "reuniao" contém "ia" e contaminava tudo)
+    const mm = t.match(/marcad[ao]\s+(?:por|pel[oa])\s+([a-zç]+)/) || t.match(/marcacao\s+([a-zç]+)/);
+    const MAP = { sdr: "SDR", ia: "IA", closer: "Closer", merlin: "Merlin", farmer: "Farmer" };
+    let org = mm ? mm[1] : "";
+    org = MAP[org] || (org ? org.charAt(0).toUpperCase() + org.slice(1) : "");
     return { tp: "venda", org };
   }
   // origem desconhecida: mostra o nome real (tira prefixo "B2C | " / "B2B | " se houver)
