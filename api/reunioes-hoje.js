@@ -243,21 +243,21 @@ async function nomesDosOwners(token, ids) {
 async function buscarMeetings(token, ownerIds, janela) {
   const out = [];
   let after;
+  const filtros = [
+    {
+      propertyName: "hs_meeting_start_time",
+      operator: "BETWEEN",
+      value: String(janela.inicio),
+      highValue: String(janela.fim),
+    },
+  ];
+  // ownerIds vazio/null = todas as reuniões da janela (atribuição por dono do negócio)
+  if (ownerIds && ownerIds.length) {
+    filtros.unshift({ propertyName: "hubspot_owner_id", operator: "IN", values: ownerIds });
+  }
   for (let i = 0; i < 50; i++) {
     const body = {
-      filterGroups: [
-        {
-          filters: [
-            { propertyName: "hubspot_owner_id", operator: "IN", values: ownerIds },
-            {
-              propertyName: "hs_meeting_start_time",
-              operator: "BETWEEN",
-              value: String(janela.inicio),
-              highValue: String(janela.fim),
-            },
-          ],
-        },
-      ],
+      filterGroups: [{ filters: filtros }],
       properties: [
         "hs_meeting_title",
         "hs_meeting_start_time",
@@ -397,7 +397,7 @@ async function perfisDasMeetings(token, meetingIds) {
       const res = await fetch(`${BASE}/crm/v3/objects/deals/batch/read`, {
         method: "POST",
         headers: headers(token),
-        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "etiquetas", "pontuacao_leadscore__faixas"] }),
+        body: JSON.stringify({ inputs: lote.map((id) => ({ id })), properties: ["perfil", "etiquetas", "pontuacao_leadscore__faixas", "hubspot_owner_id"] }),
         cache: "no-store",
       });
       if (!res.ok) return;
@@ -406,11 +406,12 @@ async function perfisDasMeetings(token, meetingIds) {
         perfil: (d.properties?.perfil ?? "").trim(),
         etiquetas: (d.properties?.etiquetas ?? "").trim(),
         faixa: (d.properties?.pontuacao_leadscore__faixas ?? "").trim(),
+        dono: String(d.properties?.hubspot_owner_id ?? "").trim(),
       });
     })
   );
 
-  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", etiquetas: "", faixa: "" });
+  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", etiquetas: "", faixa: "", dono: "" });
   return info;
 }
 
@@ -426,19 +427,26 @@ function normalizaOutcome(v) {
   return "SCHEDULED"; // SCHEDULED ou vazio
 }
 
-async function montarSegmento(token, ownerIds, segmento, janela, diag) {
+// `pre` (opcional) = dados já buscados uma vez e compartilhados entre B2B e B2C:
+// { nomes, meetings, contatos, perfis, donoEfetivo }. donoEfetivo mapeia
+// meetingId -> closerId (dono da reunião OU dono do negócio associado).
+async function montarSegmento(token, ownerIds, segmento, janela, diag, pre) {
   if (!ownerIds.length) return [];
-  const [nomes, meetings] = await Promise.all([
-    nomesDosOwners(token, ownerIds),
-    buscarMeetings(token, ownerIds, janela),
-  ]);
-
-  const ids = meetings.map((m) => m.id).filter(Boolean);
-  const [contatos, perfis] = await Promise.all([
-    contatosDasMeetings(token, ids),
-    // perfil (deal) só é exibido no B2C -> não gasta chamadas de deal no B2B
-    segmento === "B2C" ? perfisDasMeetings(token, ids) : Promise.resolve(new Map()),
-  ]);
+  let nomes, meetings, contatos, perfis, donoEfetivo = null;
+  if (pre) {
+    ({ nomes, meetings, contatos, perfis, donoEfetivo } = pre);
+  } else {
+    [nomes, meetings] = await Promise.all([
+      nomesDosOwners(token, ownerIds),
+      buscarMeetings(token, ownerIds, janela),
+    ]);
+    const ids = meetings.map((m) => m.id).filter(Boolean);
+    [contatos, perfis] = await Promise.all([
+      contatosDasMeetings(token, ids),
+      // perfil (deal) só é exibido no B2C -> não gasta chamadas de deal no B2B
+      segmento === "B2C" ? perfisDasMeetings(token, ids) : Promise.resolve(new Map()),
+    ]);
+  }
 
   const dpo = (owner) => {
     if (!diag) return null;
@@ -457,7 +465,13 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag) {
   const porOwner = new Map();
   for (const m of meetings) {
     const p = m.properties ?? {};
-    const owner = String(p.hubspot_owner_id ?? "");
+    // dono efetivo: dono da reunião OU dono do negócio (quando marcada por Farmer).
+    // Meetings de outro segmento caem em owner que não está no ownerIds e são
+    // descartadas no .map() final — cada segmento só fica com os seus.
+    const owner = donoEfetivo
+      ? String(donoEfetivo.get(String(m.id)) || "")
+      : String(p.hubspot_owner_id ?? "");
+    if (!owner) continue;
     const d = dpo(owner);
     if (d) d.brutoDoHubSpot++;
     const tipo = (p.hs_activity_type ?? "").trim();
@@ -603,9 +617,32 @@ export default async function handler(req, res) {
   try {
     const janela = janelaPara(range);
     const diagB2C = debug ? {} : null;
+
+    // UMA busca só, janela inteira, SEM filtro de dono: a reunião entra no painel
+    // se o dono da reunião OU o dono do negócio associado for closer. Resolve o
+    // caso "marcada por Farmer" (reunião fica com dono = Farmer, negócio = closer).
+    // ponytail: busca todas as meetings do dia (mais caro que filtrar por dono).
+    //   Se o volume diário crescer muito, cachear o resultado no KV por ~60s.
+    const meetings = await buscarMeetings(token, null, janela);
+    const ids = meetings.map((m) => m.id).filter(Boolean);
+    const [nomes, contatos, perfis] = await Promise.all([
+      nomesDosOwners(token, [...b2b, ...b2c]),
+      contatosDasMeetings(token, ids),
+      perfisDasMeetings(token, ids),
+    ]);
+    const setCloser = new Set([...b2b, ...b2c].map(String));
+    const donoEfetivo = new Map(); // meetingId -> closerId (reunião ou negócio)
+    for (const m of meetings) {
+      const mid = String(m.id);
+      const donoReuniao = String(m.properties?.hubspot_owner_id ?? "");
+      if (setCloser.has(donoReuniao)) { donoEfetivo.set(mid, donoReuniao); continue; }
+      const donoDeal = (perfis.get(mid) || {}).dono || "";
+      if (setCloser.has(donoDeal)) donoEfetivo.set(mid, donoDeal);
+    }
+    const pre = { nomes, meetings, contatos, perfis, donoEfetivo };
     const [closersB2B, closersB2C] = await Promise.all([
-      montarSegmento(token, b2b, "B2B", janela),
-      montarSegmento(token, b2c, "B2C", janela, diagB2C),
+      montarSegmento(token, b2b, "B2B", janela, null, pre),
+      montarSegmento(token, b2c, "B2C", janela, diagB2C, pre),
     ]);
     const payload = { range, inicio: janela.inicio, fim: janela.fim, closers: [...closersB2B, ...closersB2C] };
     if (debug) {
