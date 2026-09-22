@@ -663,6 +663,11 @@ export default async function handler(req, res) {
       const mid = String(m.id);
       const donoReuniao = String(m.properties?.hubspot_owner_id ?? "");
       if (setCloser.has(donoReuniao)) { donoEfetivo.set(mid, donoReuniao); continue; }
+      // Dono da reunião NÃO é closer: só entra pelo dono do negócio se for
+      // reunião de VENDA (marcada por Farmer/SDR pro closer atender). Reunião
+      // interna/relacionamento/follow organizada por outro colaborador PSA,
+      // ainda que o negócio seja do closer, NÃO é dele.
+      if (categoriaTipo((m.properties?.hs_activity_type ?? "").trim()).tp !== "venda") continue;
       const donoDeal = (perfis.get(mid) || {}).dono || "";
       if (setCloser.has(donoDeal)) donoEfetivo.set(mid, donoDeal);
     }
