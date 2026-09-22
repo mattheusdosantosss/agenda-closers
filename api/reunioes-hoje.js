@@ -427,6 +427,27 @@ function normalizaOutcome(v) {
   return "SCHEDULED"; // SCHEDULED ou vazio
 }
 
+// Colapsa remarcações do mesmo dia: agrupa por contato; se o grupo tem >1 item
+// e algum é RESCHEDULED (foi reprogramado), mantém só o de horário mais tardio.
+// Sem contato ou sem RESCHEDULED no grupo -> não mexe.
+function dedupeRemarcadas(lista) {
+  const grupos = new Map();
+  for (const r of lista) {
+    const k = r.contatoId || `__${r.id}`; // sem contato não agrupa (chave única)
+    if (!grupos.has(k)) grupos.set(k, []);
+    grupos.get(k).push(r);
+  }
+  const out = [];
+  for (const g of grupos.values()) {
+    if (g.length > 1 && g.some((r) => r.outcome === "RESCHEDULED")) {
+      out.push(g.reduce((a, b) => (new Date(b.inicio) > new Date(a.inicio) ? b : a)));
+    } else {
+      out.push(...g);
+    }
+  }
+  return out.sort((a, b) => new Date(a.inicio) - new Date(b.inicio));
+}
+
 // `pre` (opcional) = dados já buscados uma vez e compartilhados entre B2B e B2C:
 // { nomes, meetings, contatos, perfis, donoEfetivo }. donoEfetivo mapeia
 // meetingId -> closerId (dono da reunião OU dono do negócio associado).
@@ -502,6 +523,7 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag, pre) {
       id: String(m.id),
       titulo: (p.hs_meeting_title ?? "").trim() || "Reunião",
       contato: ct.contato,
+      contatoId: ct.contatoId || "", // p/ agrupar remarcações do mesmo lead
       empresa: segmento === "B2C" ? "—" : ct.empresa,
       leadscore: ct.leadscore || "",
       tipo,
@@ -521,6 +543,11 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag, pre) {
       link: ct.contatoId ? linkContato(ct.contatoId) : linkReuniao(String(m.id)),
     });
   }
+
+  // Remarcação no mesmo dia: o mesmo lead aparece 2x (a original com outcome
+  // RESCHEDULED + a nova). Mantém só a mais tardia (a reunião atual). Só colapsa
+  // quando há uma RESCHEDULED no grupo; dois eventos genuínos do mesmo lead ficam.
+  for (const [k, arr] of porOwner) porOwner.set(k, dedupeRemarcadas(arr));
 
   // um card por closer (mesmo sem reunião hoje, para o time aparecer na TV)
   return ownerIds.map((id, i) => {
