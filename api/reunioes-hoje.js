@@ -493,6 +493,12 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag, pre) {
       ? String(donoEfetivo.get(String(m.id)) || "")
       : String(p.hubspot_owner_id ?? "");
     if (!owner) continue;
+    // reunião avulsa/ad-hoc: sem tipo, sem contato E sem negócio (ex.: título =
+    // código do Meet, nenhum lead vinculado) — ruído, fora da agenda.
+    const semTipo = !(p.hs_activity_type ?? "").trim();
+    const semContato = !(contatos.get(String(m.id)) || {}).contatoId;
+    const semNegocio = !((perfis.get(String(m.id)) || {}).dono);
+    if (semTipo && semContato && semNegocio) continue;
     const d = dpo(owner);
     if (d) d.brutoDoHubSpot++;
     const tipo = (p.hs_activity_type ?? "").trim();
