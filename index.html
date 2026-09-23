@@ -808,12 +808,11 @@ function cardCloser(c, r, agora, opts={}){
       else if(s==="PENDENTE"){ cls="reg"; due="A registrar"; }
       else { cls=""; due=""; if(ehHojeSel() && !emAndamento && !jaMarcouProxima){ jaMarcouProxima=true; if(Math.round((m.inicio-agora)/60000)<=60){ cls="now"; due=faltamMin(m.inicio, agora); } } }
       const nome = (m.contato && m.contato!=='—') ? m.contato : (m.titulo||'Reunião');
-      const perfil = (m.perfil||'').trim();
       const emp = (m.empresa||'').trim();
       const empPill = (emp && emp!=='—') ? `<span class="pf empresa">${emp}</span>` : ''; // B2B mostra empresa; B2C é "—"
       const etqs = (m.etiquetas||'').split(';').map(s=>s.trim()).filter(Boolean);
-      const attrs = (empPill || perfil || etqs.length)
-        ? `<div class="attrs">${empPill}${perfil?`<span class="pf">${perfil}</span>`:''}${etqs.map(e=>`<span class="etq">${e}</span>`).join('')}</div>` : '';
+      const attrs = (empPill || etqs.length)
+        ? `<div class="attrs">${empPill}${etqs.map(e=>`<span class="etq">${e}</span>`).join('')}</div>` : '';
       const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
       return `<a class="cell ${cls}"${href}>
         <div class="lead"><div class="hr">${fmtHora(m.inicio)}</div>${due?`<div class="due">${due}</div>`:''}</div>
@@ -989,9 +988,7 @@ function abrirModal(key, titulo, cor){
     lista.innerHTML = itens.map(({c,m,s})=>{
       const v = statusVisual(s);
       const emp = (m.empresa||'').trim();
-      const perfil = (m.perfil||'').trim();
       let info = (emp && emp!=='—') ? `${m.contato} · ${emp}` : (m.contato||m.titulo||'—');
-      if(perfil && state.seg==='B2C') info += ` · <b style="color:var(--blue)">${perfil}</b>`;
       const dia = multiDia ? `<small>${fmtDia(m.inicio)}</small>` : '';
       const href = m.link ? ` href="${m.link}" target="_blank" rel="noopener"` : '';
       const cls = s==='CANCELADA' ? ' cancel' : '';
