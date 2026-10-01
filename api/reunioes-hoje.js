@@ -52,6 +52,7 @@ const DEFAULT_B2C = [
   "89632494", // Willker Santos Belous
   "88628313", // Gabrielly Milani da Silva
   "99230962", // Andrea Maria de Vargas
+  "99956263", // Indira Bauer
 ];
 
 // Brasília é UTC-3 (o Brasil não tem mais horário de verão desde 2019).
