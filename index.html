@@ -928,14 +928,10 @@ function render(dados){
     return;
   }
 
-  // Cards do B2C: até 5, uma linha só; acima disso quebra em 2 linhas
-  // (colunas = metade, arredondando pra cima -> 7 vira 4+3).
+  // Cards do B2C: todos numa linha só, esticando pra preencher a altura da tela
   grid.className = 'grid';
-  const nB2C = Math.max(1, resumos.length);
-  const duasLinhas = nB2C > 5;
-  const cols = duasLinhas ? Math.ceil(nB2C / 2) : nB2C;
-  grid.style.gridTemplateColumns = `repeat(${cols},minmax(0,1fr))`;
-  grid.style.gridTemplateRows = `repeat(${duasLinhas ? 2 : 1},minmax(0,1fr))`;
+  grid.style.gridTemplateColumns = `repeat(${Math.max(1,resumos.length)},minmax(0,1fr))`;
+  grid.style.gridTemplateRows = 'minmax(0,1fr)';
   resumos.forEach(({c,r})=> grid.appendChild(el(cardCloser(c, r, agora))));
 }
 
