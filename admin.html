@@ -15,7 +15,7 @@
   .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
   .bar a,.bar button{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 13px;font-size:13px;text-decoration:none;cursor:pointer}
   .bar a.on{background:var(--orange);border-color:var(--orange);color:#1a0f06;font-weight:700}
-  .bar input{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+  .bar input,.bar select{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
   .grp{margin:0 0 26px}
   .grp-h{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid var(--line)}
   .grp-h .nm{font-size:16px;font-weight:700}
@@ -45,6 +45,9 @@
     <input id="dia" type="date" title="Dia (BRT)">
     <button id="ir">Ver</button>
     <button id="hoje">Hoje</button>
+    <span style="flex:1"></span>
+    <select id="fTipo" title="Filtrar por tipo"><option value="">Todos os tipos</option></select>
+    <select id="fCloser" title="Filtrar por closer"><option value="">Todos os closers</option></select>
   </div>
   <div id="out"></div>
 
@@ -97,12 +100,23 @@ document.getElementById('hoje').onclick = () => location.search=`?seg=${seg.toLo
   const out = document.getElementById('out');
   if(!todas.length){ out.innerHTML = '<div class="empty">Nenhuma reunião.</div>'; return; }
 
-  // agrupa por categoria tp
-  const grupos = new Map(CATS.map(([k])=>[k,[]]));
-  for(const m of todas){ const k = grupos.has(m.tp) ? m.tp : 'outro'; grupos.get(k).push(m); }
+  // popula os selects (tipos presentes, na ordem das CATS; closers em ordem alfabética)
+  const fTipo = document.getElementById('fTipo'), fCloser = document.getElementById('fCloser');
+  const presentes = new Set(todas.map(m => CATS.some(([k])=>k===m.tp) ? m.tp : 'outro'));
+  for(const [k, label] of CATS) if(presentes.has(k)) fTipo.add(new Option(label, k));
+  for(const nome of [...new Set(todas.map(m=>m.closer))].sort((a,b)=>a.localeCompare(b,'pt-BR'))) fCloser.add(new Option(nome, nome));
+  fTipo.onchange = fCloser.onchange = render;
+
+  function render(){
+    const tTipo = fTipo.value, tCloser = fCloser.value;
+    const base = todas.filter(m => (!tCloser || m.closer===tCloser));
+    // agrupa por categoria tp
+    const grupos = new Map(CATS.map(([k])=>[k,[]]));
+    for(const m of base){ const k = grupos.has(m.tp) ? m.tp : 'outro'; grupos.get(k).push(m); }
 
   let html = '';
   for(const [k, label] of CATS){
+    if(tTipo && k!==tTipo) continue;
     const itens = grupos.get(k).sort((a,b)=> new Date(a.inicio)-new Date(b.inicio));
     if(!itens.length) continue;
     html += `<div class="grp"><div class="grp-h"><span class="nm">${label}</span><span class="ct">${itens.length}</span></div>
@@ -123,7 +137,10 @@ document.getElementById('hoje').onclick = () => location.search=`?seg=${seg.toLo
     }
     html += '</tbody></table></div>';
   }
-  out.innerHTML = html;
+    out.innerHTML = html || '<div class="empty">Nenhuma reunião com esses filtros.</div>';
+  }
+
+  render();
 })();
 </script>
 </body>
