@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Admin · Reuniões por tipo</title>
+<style>
+  :root{ --bg:#0b0b0e; --card:#15151b; --line:#26262f; --txt:#e9e9ef; --mut:#9a9aa6;
+    --orange:#ff6a1a; --blue:#5aa9ff; --green:#46d17f; --red:#ff5a5a; --amber:#ffcf5a; }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 Archivo,system-ui,-apple-system,Segoe UI,Roboto,sans-serif;padding:20px 22px 48px}
+  h1{font-size:19px;margin:0 0 2px;letter-spacing:.3px}
+  .sub{color:var(--mut);font-size:13px;margin-bottom:16px}
+  .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:20px}
+  .bar a,.bar button{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 13px;font-size:13px;text-decoration:none;cursor:pointer}
+  .bar a.on{background:var(--orange);border-color:var(--orange);color:#1a0f06;font-weight:700}
+  .bar input{background:var(--card);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px}
+  .grp{margin:0 0 26px}
+  .grp-h{display:flex;align-items:baseline;gap:10px;margin:0 0 8px;padding-bottom:6px;border-bottom:2px solid var(--line)}
+  .grp-h .nm{font-size:16px;font-weight:700}
+  .grp-h .ct{color:var(--orange);font-weight:700;font-size:16px}
+  table{width:100%;border-collapse:collapse}
+  th,td{text-align:left;padding:7px 10px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13px}
+  th{color:var(--mut);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.4px}
+  tr.row{cursor:pointer}
+  tr.row:hover td{background:#1b1b22}
+  .hr{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--amber)}
+  .muted{color:var(--mut)}
+  .st{font-size:11.5px;font-weight:700;white-space:nowrap}
+  .st.COMPLETED{color:var(--green)} .st.NO_SHOW{color:var(--red)} .st.CANCELED{color:var(--red)}
+  .st.RESCHEDULED{color:var(--blue)} .st.SCHEDULED{color:var(--mut)}
+  .tp{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#cfcfe0}
+  .empty{color:var(--mut);padding:30px 0;text-align:center}
+  .err{color:var(--red);padding:20px 0}
+  code{background:#000;padding:1px 5px;border-radius:5px}
+</style>
+</head>
+<body>
+  <h1>Admin · Reuniões por tipo</h1>
+  <div class="sub" id="sub">Carregando…</div>
+  <div class="bar">
+    <a id="tb2c" href="?seg=b2c">B2C</a>
+    <a id="tb2b" href="?seg=b2b">B2B</a>
+    <input id="dia" type="date" title="Dia (BRT)">
+    <button id="ir">Ver</button>
+    <button id="hoje">Hoje</button>
+  </div>
+  <div id="out"></div>
+
+<script>
+const qs = new URLSearchParams(location.search);
+const seg = (qs.get('seg') || 'b2c').toLowerCase() === 'b2b' ? 'B2B' : 'B2C';
+const range = qs.get('range') || 'hoje'; // hoje | YYYY-MM-DD
+
+// categorias na mesma ordem/rótulo do contador do painel
+const CATS = [
+  ['venda', 'Venda'],
+  ['follow', 'Follow-up'],
+  ['sem', 'Sem tipo'],
+  ['rel', 'Relacionamento'],
+  ['reprog', 'Reprogramada'],
+  ['outro', 'Outro'],
+];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const horaBRT = iso => { try { return new Date(iso).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Sao_Paulo'}); } catch { return '--:--'; } };
+const diaBRT = iso => { try { return new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',timeZone:'America/Sao_Paulo'}); } catch { return ''; } };
+const ST = {COMPLETED:'Realizada',NO_SHOW:'No-show',CANCELED:'Cancelada',RESCHEDULED:'Reprogramada',SCHEDULED:'Agendada'};
+
+document.getElementById('t'+seg.toLowerCase()).classList.add('on');
+if(/^\d{4}-\d{2}-\d{2}$/.test(range)) document.getElementById('dia').value = range;
+document.getElementById('ir').onclick = () => { const d=document.getElementById('dia').value; if(d) location.search=`?seg=${seg.toLowerCase()}&range=${d}`; };
+document.getElementById('hoje').onclick = () => location.search=`?seg=${seg.toLowerCase()}`;
+
+(async () => {
+  let data;
+  try {
+    const r = await fetch(`/api/reunioes-hoje?range=${encodeURIComponent(range)}`, {cache:'no-store'});
+    data = await r.json();
+    if(data.error) throw new Error(data.error);
+  } catch(e) {
+    document.getElementById('sub').textContent = '';
+    document.getElementById('out').innerHTML = `<div class="err">Erro ao carregar: ${esc(e.message||e)}</div>`;
+    return;
+  }
+
+  const closers = (data.closers || []).filter(c => c.segmento === seg);
+  // junta todas as reuniões com o nome do closer
+  const todas = [];
+  for(const c of closers) for(const m of (c.reunioes||[])) todas.push({...m, closer:c.nome});
+
+  const diaTxt = /^\d{4}-\d{2}-\d{2}$/.test(range)
+    ? range.split('-').reverse().join('/')
+    : 'hoje';
+  document.getElementById('sub').innerHTML = `Segmento <b>${seg}</b> · ${diaTxt} · <b>${todas.length}</b> reuniões no total · fonte: <code>/api/reunioes-hoje</code> (ao vivo)`;
+
+  const out = document.getElementById('out');
+  if(!todas.length){ out.innerHTML = '<div class="empty">Nenhuma reunião.</div>'; return; }
+
+  // agrupa por categoria tp
+  const grupos = new Map(CATS.map(([k])=>[k,[]]));
+  for(const m of todas){ const k = grupos.has(m.tp) ? m.tp : 'outro'; grupos.get(k).push(m); }
+
+  let html = '';
+  for(const [k, label] of CATS){
+    const itens = grupos.get(k).sort((a,b)=> new Date(a.inicio)-new Date(b.inicio));
+    if(!itens.length) continue;
+    html += `<div class="grp"><div class="grp-h"><span class="nm">${label}</span><span class="ct">${itens.length}</span></div>
+      <table><thead><tr>
+        <th>Hora</th><th>Closer</th><th>Contato</th><th>Título</th><th>Tipo (HubSpot)</th><th>Status</th>
+      </tr></thead><tbody>`;
+    for(const m of itens){
+      const oc = m.outcome || 'SCHEDULED';
+      const href = m.link ? ` onclick="window.open('${esc(m.link)}','_blank')"` : '';
+      html += `<tr class="row"${href}>
+        <td class="hr">${horaBRT(m.inicio)}<div class="muted" style="font-size:11px">${diaBRT(m.inicio)}</div></td>
+        <td>${esc(m.closer)}</td>
+        <td>${esc(m.contato && m.contato!=='—' ? m.contato : '—')}</td>
+        <td class="muted">${esc(m.titulo||'')}</td>
+        <td class="tp">${esc(m.tipo || '(vazio)')}${m.org?` · ${esc(m.org)}`:''}</td>
+        <td><span class="st ${oc}">${ST[oc]||oc}</span></td>
+      </tr>`;
+    }
+    html += '</tbody></table></div>';
+  }
+  out.innerHTML = html;
+})();
+</script>
+</body>
+</html>
