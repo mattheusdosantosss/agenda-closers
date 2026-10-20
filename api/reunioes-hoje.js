@@ -66,6 +66,7 @@ const horaBRT = (d) => {
 const PORTAL_ID = process.env.HUBSPOT_PORTAL_ID || "49656171";
 const HS_UI = "https://app.hubspot.com";
 const linkContato = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-1/${id}`;
+const linkDeal = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-3/${id}`;
 const linkReuniao = (id) => `${HS_UI}/contacts/${PORTAL_ID}/record/0-47/${id}`;
 
 // Normaliza p/ comparação: sem acento, minúsculo, espaços colapsados.
@@ -413,7 +414,7 @@ async function perfisDasMeetings(token, meetingIds) {
     })
   );
 
-  for (const [mId, dId] of meetingToDeal) info.set(mId, propsPorDeal.get(dId) || { perfil: "", etiquetas: "", faixa: "", dono: "" });
+  for (const [mId, dId] of meetingToDeal) info.set(mId, { ...(propsPorDeal.get(dId) || { perfil: "", etiquetas: "", faixa: "", dono: "" }), dealId: dId });
   return info;
 }
 
@@ -548,7 +549,11 @@ async function montarSegmento(token, ownerIds, segmento, janela, diag, pre) {
         : oc === "NO_SHOW" ? "NO_SHOW"
         : oc === "COMPLETED" ? "COMPLETED"
         : "SCHEDULED",
-      link: ct.contatoId ? linkContato(ct.contatoId) : linkReuniao(String(m.id)),
+      // contato tem página; sem contato cai no negócio (0-3); meeting (0-47) é
+      // o último recurso (às vezes nem abre no HubSpot).
+      link: ct.contatoId
+        ? linkContato(ct.contatoId)
+        : ((perfis.get(String(m.id)) || {}).dealId ? linkDeal((perfis.get(String(m.id))).dealId) : linkReuniao(String(m.id))),
     });
   }
 
